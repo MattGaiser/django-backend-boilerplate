@@ -4,6 +4,7 @@ from faker import Faker
 from core.models import User, Organization, OrganizationMembership, OrgRole, Project
 from core.models import User, Organization, OrganizationMembership
 from constants.roles import OrgRole
+from core.constants import LanguageChoices, PlanChoices
 
 fake = Faker()
 
@@ -20,7 +21,7 @@ class UserFactory(DjangoModelFactory):
     is_active = True
     is_staff = False
     is_superuser = False
-    language = 'en'
+    language = factory.Iterator([choice[0] for choice in LanguageChoices.choices])
     timezone = 'UTC'
     last_login_ip = factory.Faker('ipv4')
     
@@ -63,6 +64,8 @@ class OrganizationFactory(DjangoModelFactory):
     name = factory.Faker('company')
     description = factory.Faker('text', max_nb_chars=200)
     is_active = True
+    plan = factory.Iterator([choice[0] for choice in PlanChoices.choices])
+    language = factory.Iterator([choice[0] for choice in LanguageChoices.choices])
 
 
 class OrganizationMembershipFactory(DjangoModelFactory):
