@@ -20,11 +20,9 @@ RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.pytho
 # Copy project
 COPY . /app/
 
-# Create static files directory
-RUN mkdir -p /app/staticfiles
-
 # Create a non-root user with home directory and proper permissions
 RUN groupadd -r django && useradd -r -g django -m -d /home/django django && \
+    mkdir -p /app/staticfiles && \
     chown -R django:django /app && \
     chown -R django:django /home/django && \
     chmod -R 755 /home/django
