@@ -59,7 +59,7 @@ class CanViewUserData(BasePermission):
     
     Allows:
     - Users to view their own data
-    - Organization admins and managers to view data of users in their org
+    - Organization super admins, admins and managers to view data of users in their org
     """
     
     def has_permission(self, request, view):
@@ -78,14 +78,14 @@ class CanViewUserData(BasePermission):
         if obj == request.user:
             return True
         
-        # Check if the requesting user has admin or manager role in any shared organization
+        # Check if the requesting user has super admin, admin or manager role in any shared organization
         requesting_user_orgs = set(request.user.organizations.all())
         target_user_orgs = set(obj.organizations.all())
         shared_orgs = requesting_user_orgs.intersection(target_user_orgs)
         
         for org in shared_orgs:
             user_role = request.user.get_role(org)
-            if user_role in [OrgRole.ADMIN, OrgRole.MANAGER]:
+            if user_role in [OrgRole.SUPER_ADMIN, OrgRole.ADMIN, OrgRole.MANAGER]:
                 return True
         
         return False

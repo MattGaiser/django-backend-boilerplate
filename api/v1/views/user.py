@@ -29,7 +29,7 @@ class UserViewSet(BaseViewSet):
     
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
-    required_roles = [OrgRole.ADMIN]  # Only admins can manage users
+    required_roles = [OrgRole.SUPER_ADMIN, OrgRole.ADMIN]  # Only super admins and admins can manage users
     
     def get_queryset(self):
         """
@@ -40,9 +40,9 @@ class UserViewSet(BaseViewSet):
         if not self.request.user.is_authenticated:
             return User.objects.none()
         
-        # Get organizations where the user has admin access
+        # Get organizations where the user has admin or super admin access
         user_org_ids = self.request.user.organization_memberships.filter(
-            role=OrgRole.ADMIN
+            role__in=[OrgRole.SUPER_ADMIN, OrgRole.ADMIN]
         ).values_list('organization_id', flat=True)
         
         # Return users who are members of those organizations
