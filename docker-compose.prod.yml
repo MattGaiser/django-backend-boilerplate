@@ -8,7 +8,7 @@ services:
       - DEBUG=false
     restart: unless-stopped
     command: >
-      sh -c "pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt &&
+      sh -c "pip install --user --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt &&
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn DjangoBoilerplate.wsgi:application --bind 0.0.0.0:8000 --workers 3"
