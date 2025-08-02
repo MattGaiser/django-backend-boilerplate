@@ -104,7 +104,8 @@ class FlowTriggerTestCase(APITestCase):
         
         # Verify response
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('Admin permissions required', response.data['detail'])
+        # With the new permission system, the error message is in the nested details structure
+        self.assertIn('You do not have permission to perform this action', str(response.data['details']['detail']))
     
     def test_trigger_flow_forbidden_no_organization(self):
         """Test flow trigger fails for user with no organization."""
@@ -116,7 +117,8 @@ class FlowTriggerTestCase(APITestCase):
         
         # Verify response
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('User must belong to an organization', response.data['detail'])
+        # With the new permission system, users with no org will also get the generic permission message
+        self.assertIn('You do not have permission to perform this action', str(response.data['details']['detail']))
     
     def test_trigger_flow_unauthorized_no_token(self):
         """Test flow trigger fails without authentication."""
