@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from constants.roles import OrgRole
+from core.constants import PlanChoices, LanguageChoices
 
 
 class SoftDeleteManager(models.Manager):
@@ -141,9 +142,17 @@ class Organization(BaseModel):
         help_text=_("Designates whether this organization is active")
     )
     
+    plan = models.CharField(
+        max_length=20,
+        choices=PlanChoices.choices,
+        default=PlanChoices.FREE,
+        help_text=_("Subscription plan for the organization")
+    )
+    
     language = models.CharField(
         max_length=10,
-        default='en',
+        choices=LanguageChoices.choices,
+        default=LanguageChoices.get_default_language(),
         blank=True,
         help_text=_("Default language for the organization")
     )
@@ -151,6 +160,43 @@ class Organization(BaseModel):
     def __str__(self):
         """Return string representation of the organization."""
         return self.name
+    
+    def get_plan_limits(self):
+        """
+        Get the limits for this organization's plan.
+        
+        Returns:
+            dict: Dictionary containing limits for the organization's plan
+        """
+        return PlanChoices.get_plan_limits(self.plan)
+    
+    def is_premium_plan(self):
+        """
+        Check if this organization has a premium plan.
+        
+        Returns:
+            bool: True if organization has a premium plan, False otherwise
+        """
+        return PlanChoices.is_premium_plan(self.plan)
+    
+    def can_add_users(self, additional_users=1):
+        """
+        Check if organization can add more users based on plan limits.
+        
+        Args:
+            additional_users: Number of additional users to check for
+            
+        Returns:
+            bool: True if organization can add the users, False otherwise
+        """
+        limits = self.get_plan_limits()
+        max_users = limits.get('max_users')
+        
+        if max_users is None:  # Unlimited
+            return True
+            
+        current_users = self.user_memberships.count()
+        return (current_users + additional_users) <= max_users
 
 
 class UserManager(BaseUserManager):
@@ -237,7 +283,8 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     
     language = models.CharField(
         max_length=10,
-        default='en',
+        choices=LanguageChoices.choices,
+        default=LanguageChoices.get_default_language(),
         blank=True,
         help_text=_("Preferred language code")
     )
@@ -340,7 +387,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         
         Returns:
             str: User's preferred language if set, otherwise organization's default language,
-                 or 'en' if no organization default is available.
+                 or default language if no organization default is available.
         """
         if self.language:
             return self.language
@@ -350,7 +397,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         if default_org and default_org.language:
             return default_org.language
         
-        return 'en'  # Fallback to English
+        return LanguageChoices.get_default_language()  # Fallback to default language
 
     def __str__(self):
         """Return string representation of the user."""
