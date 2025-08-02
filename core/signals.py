@@ -1,3 +1,20 @@
+"""
+Django Signal Handlers for Auto-Audit and PII Field Validation
+
+This module provides signal handlers that automatically:
+1. Populate audit fields (created_by, updated_by) based on thread-local request context
+2. Validate that models with PII fields have proper pii_fields declarations
+3. Log warnings for ambiguous PII field detection
+
+Configuration:
+- CORE_PII_FIELD_NAMES: Django setting to customize which field names are considered PII
+
+Usage:
+- Signals are automatically connected when the core app is loaded
+- Use set_current_user(user) to set the current user for audit tracking
+- Use CurrentUserMiddleware to automatically capture request users
+"""
+
 import threading
 import logging
 from django.db.models.signals import pre_save, class_prepared
