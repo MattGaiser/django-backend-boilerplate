@@ -261,3 +261,27 @@ class UserViewSetTestCase(APITestCase):
         self.assertIn(self.admin_user.full_name, user_emails)
         self.assertIn(self.manager_user.full_name, user_emails)
         self.assertIn(self.viewer_user.full_name, user_emails)
+    
+    def test_super_admin_can_list_users(self):
+        """Test that super admins can list users (has admin-level access)."""
+        # Create a super admin user
+        super_admin_user = UserFactory()
+        OrganizationMembershipFactory(
+            user=super_admin_user,
+            organization=self.organization,
+            role=OrgRole.SUPER_ADMIN,
+            is_default=True  # Make this the default organization
+        )
+        
+        token = Token.objects.create(user=super_admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        
+        url = reverse('users-list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should see all users in the organization
+        user_emails = [user['email'] for user in response.data['results']]
+        self.assertIn(self.admin_user.email, user_emails)
+        self.assertIn(self.manager_user.email, user_emails)
+        self.assertIn(self.viewer_user.email, user_emails)

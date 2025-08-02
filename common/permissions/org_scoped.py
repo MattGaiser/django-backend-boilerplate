@@ -124,5 +124,5 @@ class IsOrgMember(IsAuthenticatedAndInOrgWithRole):
     
     def has_permission(self, request, view):
         # Set required_roles to all available roles
-        view.required_roles = [OrgRole.ADMIN, OrgRole.MANAGER, OrgRole.VIEWER]
+        view.required_roles = [OrgRole.ADMIN, OrgRole.MANAGER, OrgRole.EDITOR, OrgRole.VIEWER, OrgRole.SUPER_ADMIN]
         return super().has_permission(request, view)

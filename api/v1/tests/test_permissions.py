@@ -148,6 +148,8 @@ class ConveniencePermissionTestCase(TestCase):
         self.organization = OrganizationFactory()
         self.admin_user = UserFactory()
         self.manager_user = UserFactory()
+        self.editor_user = UserFactory()
+        self.super_admin_user = UserFactory()
         
         OrganizationMembershipFactory(
             user=self.admin_user,
@@ -158,6 +160,16 @@ class ConveniencePermissionTestCase(TestCase):
             user=self.manager_user,
             organization=self.organization,
             role=OrgRole.MANAGER
+        )
+        OrganizationMembershipFactory(
+            user=self.editor_user,
+            organization=self.organization,
+            role=OrgRole.EDITOR
+        )
+        OrganizationMembershipFactory(
+            user=self.super_admin_user,
+            organization=self.organization,
+            role=OrgRole.SUPER_ADMIN
         )
     
     def _create_mock_request(self, user):
@@ -211,12 +223,25 @@ class ConveniencePermissionTestCase(TestCase):
         """Test IsOrgMember convenience permission."""
         permission = IsOrgMember()
         
-        # Both admin and manager should be allowed
-        for user in [self.admin_user, self.manager_user]:
+        # All role types should be allowed
+        for user in [self.admin_user, self.manager_user, self.editor_user, self.super_admin_user]:
             request = self._create_mock_request(user)
             view = self._create_mock_view()
             result = permission.has_permission(request, view)
-            self.assertTrue(result)
+            self.assertTrue(result, f"User with role {user.get_role(self.organization)} should be allowed")
+    
+    def test_is_org_member_includes_all_roles(self):
+        """Test that IsOrgMember permission includes all defined roles."""
+        permission = IsOrgMember()
+        view = self._create_mock_view()
+        request = self._create_mock_request(self.admin_user)
+        
+        # Call has_permission to set the required_roles on the view
+        permission.has_permission(request, view)
+        
+        # Verify all roles are included
+        expected_roles = [OrgRole.ADMIN, OrgRole.MANAGER, OrgRole.EDITOR, OrgRole.VIEWER, OrgRole.SUPER_ADMIN]
+        self.assertEqual(set(view.required_roles), set(expected_roles))
 
 
 class APISpecificPermissionTestCase(TestCase):
@@ -230,6 +255,8 @@ class APISpecificPermissionTestCase(TestCase):
         self.user1 = UserFactory()
         self.user2 = UserFactory()
         self.admin_user = UserFactory()
+        self.super_admin_user = UserFactory()
+        self.editor_user = UserFactory()
         
         OrganizationMembershipFactory(
             user=self.user1,
@@ -245,6 +272,16 @@ class APISpecificPermissionTestCase(TestCase):
             user=self.admin_user,
             organization=self.organization,
             role=OrgRole.ADMIN
+        )
+        OrganizationMembershipFactory(
+            user=self.super_admin_user,
+            organization=self.organization,
+            role=OrgRole.SUPER_ADMIN
+        )
+        OrganizationMembershipFactory(
+            user=self.editor_user,
+            organization=self.organization,
+            role=OrgRole.EDITOR
         )
     
     def test_is_owner_or_admin_user_can_access_own_data(self):
@@ -299,3 +336,23 @@ class APISpecificPermissionTestCase(TestCase):
         
         result = permission.has_object_permission(request, view, self.user1)
         self.assertTrue(result)
+    
+    def test_can_view_user_data_super_admin_access(self):
+        """Test that super admins can view other users' data."""
+        permission = CanViewUserData()
+        request = Mock()
+        request.user = self.super_admin_user
+        view = Mock()
+        
+        result = permission.has_object_permission(request, view, self.user1)
+        self.assertTrue(result)
+    
+    def test_can_view_user_data_editor_cannot_access(self):
+        """Test that editors cannot view other users' data (only admins, managers, and super admins can)."""
+        permission = CanViewUserData()
+        request = Mock()
+        request.user = self.editor_user
+        view = Mock()
+        
+        result = permission.has_object_permission(request, view, self.user1)
+        self.assertFalse(result)
