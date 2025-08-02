@@ -2,6 +2,8 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ImproperlyConfigured, ValidationError
@@ -475,7 +477,198 @@ class OrganizationMembership(BaseModel):
         return f"{self.user.email} - {self.organization.name} ({self.get_role_display()})"
 
 
-class Project(BaseModel):
+class TaggableMixin(models.Model):
+    """
+    Abstract mixin that adds tagging functionality to any model.
+    
+    This mixin provides a generic relation to the Tag model and
+    helper methods for managing tags on the model instance.
+    """
+    
+    class Meta:
+        abstract = True
+    
+    tags = GenericRelation(
+        'core.Tag',
+        content_type_field='content_type',
+        object_id_field='object_id',
+        related_query_name='tagged_%(class)s'
+    )
+    
+    def add_tag(self, name, organization=None, created_by=None):
+        """
+        Add a tag to this object.
+        
+        Args:
+            name (str): Name of the tag
+            organization: Organization for the tag (uses self.organization if available)
+            created_by: User who created the tag
+            
+        Returns:
+            Tag: The created or existing tag
+            
+        Raises:
+            ValueError: If organization cannot be determined
+        """
+        # Try to get organization from the object itself if not provided
+        if organization is None:
+            if hasattr(self, 'organization'):
+                organization = self.organization
+            else:
+                raise ValueError(_("Organization must be provided or object must have an organization attribute"))
+        
+        # Get or create the tag
+        from core.models import Tag
+        tag, created = Tag.objects.get_or_create(
+            name=name.strip(),
+            organization=organization,
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.id,
+            defaults={
+                'created_by': created_by
+            }
+        )
+        return tag
+    
+    def remove_tag(self, name, organization=None):
+        """
+        Remove a tag from this object.
+        
+        Args:
+            name (str): Name of the tag to remove
+            organization: Organization for the tag (uses self.organization if available)
+            
+        Returns:
+            bool: True if tag was removed, False if tag didn't exist
+        """
+        # Try to get organization from the object itself if not provided
+        if organization is None:
+            if hasattr(self, 'organization'):
+                organization = self.organization
+            else:
+                raise ValueError(_("Organization must be provided or object must have an organization attribute"))
+        
+        try:
+            from core.models import Tag
+            tag = Tag.objects.get(
+                name=name.strip(),
+                organization=organization,
+                content_type=ContentType.objects.get_for_model(self),
+                object_id=self.id
+            )
+            tag.delete()
+            return True
+        except Tag.DoesNotExist:
+            return False
+    
+    def get_tag_names(self):
+        """
+        Get all tag names for this object.
+        
+        Returns:
+            QuerySet: QuerySet of tag names
+        """
+        return self.tags.values_list('name', flat=True)
+    
+    def has_tag(self, name, organization=None):
+        """
+        Check if this object has a specific tag.
+        
+        Args:
+            name (str): Name of the tag to check
+            organization: Organization for the tag (uses self.organization if available)
+            
+        Returns:
+            bool: True if object has the tag, False otherwise
+        """
+        # Try to get organization from the object itself if not provided
+        if organization is None:
+            if hasattr(self, 'organization'):
+                organization = self.organization
+            else:
+                raise ValueError(_("Organization must be provided or object must have an organization attribute"))
+        
+        return self.tags.filter(
+            name=name.strip(),
+            organization=organization
+        ).exists()
+
+
+class Tag(BaseModel):
+    """
+    Tag model for labeling and categorizing any content using Django's content types framework.
+    
+    Tags are scoped by organization and can be attached to any model instance
+    using Django's generic foreign key mechanism.
+    """
+    
+    # Define PII fields as a class attribute
+    pii_fields = []
+    
+    class Meta:
+        verbose_name = _("Tag")
+        verbose_name_plural = _("Tags")
+        indexes = [
+            models.Index(fields=['organization', 'name']),
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['organization', 'content_type']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'name', 'content_type', 'object_id'],
+                name='unique_tag_per_object'
+            )
+        ]
+    
+    name = models.CharField(
+        max_length=100,
+        help_text=_("Name of the tag")
+    )
+    
+    organization = models.ForeignKey(
+        'core.Organization',
+        on_delete=models.CASCADE,
+        related_name='tags',
+        help_text=_("Organization this tag belongs to")
+    )
+    
+    # Generic foreign key fields for tagging any model
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        help_text=_("Content type of the tagged object")
+    )
+    
+    object_id = models.UUIDField(
+        help_text=_("UUID of the tagged object")
+    )
+    
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    def clean(self):
+        """Validate tag data."""
+        super().clean()
+        
+        # Ensure tag name is not empty after stripping whitespace
+        if self.name is not None:
+            self.name = self.name.strip()
+        
+        if not self.name:  # This catches None, empty string, and whitespace-only strings
+            raise ValidationError({
+                'name': _('Tag name cannot be empty or only whitespace.')
+            })
+    
+    def save(self, *args, **kwargs):
+        """Override save to run clean validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        """Return string representation of the tag."""
+        return f"{self.name} ({self.organization.name})"
+
+
+class Project(BaseModel, TaggableMixin):
     """
     Sample model that inherits from BaseModel for demonstration purposes.
     

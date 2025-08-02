@@ -1,8 +1,8 @@
 import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
-from core.models import User, Organization, OrganizationMembership, OrgRole, Project
-from core.models import User, Organization, OrganizationMembership
+from django.contrib.contenttypes.models import ContentType
+from core.models import User, Organization, OrganizationMembership, Project, Tag
 from constants.roles import OrgRole
 from core.constants import LanguageChoices, PlanChoices
 
@@ -139,4 +139,29 @@ class ProjectFactory(DjangoModelFactory):
             'status': Project.StatusChoices.COMPLETED,
             'is_active': False,
         })
+        return cls(**kwargs)
+
+
+class TagFactory(DjangoModelFactory):
+    """Factory for creating Tag instances for testing."""
+    
+    class Meta:
+        model = Tag
+    
+    name = factory.Faker('word')
+    organization = factory.SubFactory(OrganizationFactory)
+    content_type = factory.LazyAttribute(lambda o: ContentType.objects.get_for_model(Project))
+    object_id = factory.SelfAttribute('content_object.id')
+    content_object = factory.SubFactory(ProjectFactory, organization=factory.SelfAttribute('..organization'))
+    
+    @classmethod
+    def create_for_object(cls, content_object, **kwargs):
+        """Create a tag for a specific object."""
+        kwargs.update({
+            'content_type': ContentType.objects.get_for_model(content_object),
+            'object_id': content_object.id,
+            'content_object': content_object,
+        })
+        if hasattr(content_object, 'organization') and 'organization' not in kwargs:
+            kwargs['organization'] = content_object.organization
         return cls(**kwargs)
