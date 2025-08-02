@@ -93,6 +93,12 @@ class OrganizationMembershipFactory(DjangoModelFactory):
         """Create a manager membership."""
         kwargs.update({'role': OrgRole.MANAGER})
         return cls(**kwargs)
+    
+    @classmethod
+    def create_super_admin_membership(cls, **kwargs):
+        """Create a super admin membership."""
+        kwargs.update({'role': OrgRole.SUPER_ADMIN})
+        return cls(**kwargs)
 
 
 class ProjectFactory(DjangoModelFactory):
