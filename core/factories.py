@@ -1,7 +1,7 @@
 import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
-from core.models import User, Organization, OrganizationMembership, OrgRole
+from core.models import User, Organization, OrganizationMembership, OrgRole, Project
 
 fake = Faker()
 
@@ -11,6 +11,7 @@ class UserFactory(DjangoModelFactory):
     
     class Meta:
         model = User
+        skip_postgeneration_save = True
     
     email = factory.Sequence(lambda n: f"user{n}@example.com")
     full_name = factory.Faker('name')
@@ -20,6 +21,16 @@ class UserFactory(DjangoModelFactory):
     language = 'en'
     timezone = 'UTC'
     last_login_ip = factory.Faker('ipv4')
+    
+    @factory.post_generation
+    def password(self, create, extracted, **kwargs):
+        """Set password for the user."""
+        if not create:
+            return
+        
+        password = extracted or 'testpass123'
+        self.set_password(password)
+        self.save()
     
     @classmethod
     def create_superuser(cls, **kwargs):
@@ -79,4 +90,42 @@ class OrganizationMembershipFactory(DjangoModelFactory):
     def create_super_admin_membership(cls, **kwargs):
         """Create a super admin membership."""
         kwargs.update({'role': OrgRole.SUPER_ADMIN})
+        return cls(**kwargs)
+
+
+class ProjectFactory(DjangoModelFactory):
+    """Factory for creating Project instances for testing."""
+    
+    class Meta:
+        model = Project
+    
+    name = factory.Faker('catch_phrase')
+    description = factory.Faker('text', max_nb_chars=500)
+    status = factory.Iterator([choice[0] for choice in Project.StatusChoices.choices])
+    is_active = True
+    organization = factory.SubFactory(OrganizationFactory)
+    start_date = factory.Faker('date_this_year')
+    end_date = factory.LazyAttribute(
+        lambda obj: fake.date_between(
+            start_date=obj.start_date,
+            end_date='+1y'
+        ) if obj.start_date else None
+    )
+    
+    @classmethod
+    def create_active_project(cls, **kwargs):
+        """Create an active project."""
+        kwargs.update({
+            'status': Project.StatusChoices.ACTIVE,
+            'is_active': True,
+        })
+        return cls(**kwargs)
+    
+    @classmethod
+    def create_completed_project(cls, **kwargs):
+        """Create a completed project."""
+        kwargs.update({
+            'status': Project.StatusChoices.COMPLETED,
+            'is_active': False,
+        })
         return cls(**kwargs)
