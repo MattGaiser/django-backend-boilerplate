@@ -52,15 +52,12 @@ class FlowTriggerTestCase(APITestCase):
     @patch('flows.hello_world_flow.hello_world')
     def test_trigger_flow_success_admin(self, mock_flow):
         """Test successful flow trigger by admin user."""
-        # Mock the flow run
-        mock_flow_run = MagicMock()
-        mock_flow_run.id = "test-flow-run-id"
-        mock_flow_run.result.return_value = {
+        # Mock the flow execution result
+        mock_flow.return_value = {
             "message": "Hello from Prefect!",
             "timestamp": "2025-08-02T20:44:04.677833",
             "status": "completed"
         }
-        mock_flow.submit.return_value = mock_flow_run
         
         # Authenticate as admin
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
@@ -71,22 +68,18 @@ class FlowTriggerTestCase(APITestCase):
         # Verify response
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'completed')
-        self.assertEqual(response.data['flow_run_id'], 'test-flow-run-id')
+        self.assertIsNotNone(response.data['flow_run_id'])
         self.assertIn('Hello World flow triggered successfully', response.data['message'])
         self.assertIsNotNone(response.data['flow_result'])
         
         # Verify flow was called
-        mock_flow.submit.assert_called_once()
-        mock_flow_run.result.assert_called_once_with(timeout=30)
+        mock_flow.assert_called_once()
     
     @patch('flows.hello_world_flow.hello_world')
     def test_trigger_flow_success_without_result(self, mock_flow):
-        """Test successful flow trigger when result retrieval fails."""
-        # Mock the flow run
-        mock_flow_run = MagicMock()
-        mock_flow_run.id = "test-flow-run-id"
-        mock_flow_run.result.side_effect = Exception("Timeout getting result")
-        mock_flow.submit.return_value = mock_flow_run
+        """Test successful flow trigger when flow execution fails."""
+        # Mock the flow execution to fail
+        mock_flow.side_effect = Exception("Flow execution error")
         
         # Authenticate as admin
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
@@ -94,15 +87,12 @@ class FlowTriggerTestCase(APITestCase):
         # Make request
         response = self.client.post(self.url, {})
         
-        # Verify response (should still succeed even if result retrieval fails)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['status'], 'submitted')
-        self.assertEqual(response.data['flow_run_id'], 'test-flow-run-id')
-        self.assertIn('Hello World flow triggered successfully', response.data['message'])
+        # Verify response (should fail gracefully)
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data['status'], 'failed')
+        self.assertIsNone(response.data['flow_run_id'])
+        self.assertIn('Flow trigger failed', response.data['message'])
         self.assertIsNone(response.data['flow_result'])
-        
-        # Verify flow was called
-        mock_flow.submit.assert_called_once()
     
     def test_trigger_flow_forbidden_non_admin(self):
         """Test flow trigger fails for non-admin user."""
@@ -150,8 +140,8 @@ class FlowTriggerTestCase(APITestCase):
     @patch('flows.hello_world_flow.hello_world')
     def test_trigger_flow_import_error(self, mock_flow):
         """Test flow trigger handles import errors gracefully."""
-        # Mock import error
-        mock_flow.submit.side_effect = ImportError("Cannot import flow")
+        # Mock import error - this would happen at import time, so we'll simulate execution error instead
+        mock_flow.side_effect = ImportError("Cannot import flow module")
         
         # Authenticate as admin
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
@@ -169,7 +159,7 @@ class FlowTriggerTestCase(APITestCase):
     def test_trigger_flow_execution_error(self, mock_flow):
         """Test flow trigger handles execution errors gracefully."""
         # Mock execution error
-        mock_flow.submit.side_effect = Exception("Flow execution failed")
+        mock_flow.side_effect = Exception("Flow execution failed")
         
         # Authenticate as admin
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')

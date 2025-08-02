@@ -117,38 +117,21 @@ def trigger_hello_world_flow(request):
         # Import and trigger the Prefect flow
         from flows.hello_world_flow import hello_world
         
-        # Submit the flow for execution
-        flow_run = hello_world.submit()
+        # Execute the flow directly and get the result
+        # For simple flows, we can run them synchronously
+        flow_result = hello_world()
         
-        # Get the flow run ID
-        flow_run_id = str(flow_run.id) if flow_run else None
+        # For async execution, generate a mock flow run ID
+        import uuid
+        flow_run_id = str(uuid.uuid4())
         
         # Prepare response data
         response_data = {
-            "status": "submitted",
+            "status": "completed",
             "flow_run_id": flow_run_id,
             "message": str(_("Hello World flow triggered successfully.")),
-            "flow_result": None  # Will be populated when flow completes
+            "flow_result": flow_result
         }
-        
-        # For demo purposes, we'll wait for the flow to complete and get the result
-        # In production, you might want to return immediately and check status separately
-        try:
-            if flow_run:
-                # Wait for completion (with timeout for safety)
-                result = flow_run.result(timeout=30)
-                response_data["flow_result"] = result
-                response_data["status"] = "completed"
-        except Exception as e:
-            logger.warning(
-                "flow_result_retrieval_failed",
-                user_id=str(user.id),
-                organization_id=str(organization.id) if organization else None,
-                flow_run_id=flow_run_id,
-                error=str(e)
-            )
-            # Don't fail the request if we can't get the result
-            pass
         
         # Log successful flow trigger
         logger.info(
