@@ -9,6 +9,15 @@ else
     ENV=$1
 fi
 
+# Load environment variables from .env file
+ENV_FILE=".env.$ENV"
+if [ -f "$ENV_FILE" ]; then
+    echo "Loading environment variables from $ENV_FILE"
+    export $(grep -v '^#' $ENV_FILE | xargs)
+else
+    echo "Warning: Environment file $ENV_FILE not found."
+fi
+
 # Validate environment parameter
 if [[ "$ENV" != "dev" && "$ENV" != "prod" && "$ENV" != "staging" ]]; then
     echo "Invalid environment: $ENV"
@@ -47,6 +56,8 @@ echo "Removing project images to force rebuild..."
 docker images | grep "${PROJECT_NAME}_" | awk '{print $1":"$2}' | xargs -r docker rmi -f
 
 echo "============= STARTING FRESH BUILD ============="
+
+
 # Run docker compose with force rebuild
 echo "Running docker compose with fresh build..."
 if [ "$ENV" = "dev" ]; then

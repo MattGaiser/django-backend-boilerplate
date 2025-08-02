@@ -20,10 +20,9 @@ import logging
 from django.db.models.signals import pre_save, class_prepared
 from django.dispatch import receiver
 from django.core.exceptions import ImproperlyConfigured
-from django.apps import apps
 from django.db import connection
 from django.conf import settings
-from .models import BaseModel, User
+from .models import BaseModel
 
 
 # Thread-local storage for the current user

@@ -2,14 +2,16 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Use postgres as the default superuser instead of POSTGRES_USER
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - .env.dev
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c \"SELECT 1 FROM pg_database WHERE datname='postgres_prefect'\" | grep -q 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -35,17 +37,19 @@ services:
     volumes:
       - .:/app
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt &&
+             python manage.py migrate &&
              python manage.py seed_demo_data &&
              python manage.py runserver 0.0.0.0:8000"
 
   prefect-server:
     image: prefecthq/prefect:3-latest
+    env_file:
+      - .env.dev
     environment:
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_SERVER_API_PORT: 4200
-    env_file:
-      - .env.dev
+      PREFECT_API_DATABASE_CONNECTION_URL: ${PREFECT_API_DATABASE_CONNECTION_URL}
     ports:
       - "4200:4200"
     depends_on:
@@ -79,5 +83,4 @@ services:
              prefect worker start --pool default-pool"
 
 volumes:
-  postgres_data:
   prefect_data:
