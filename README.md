@@ -20,21 +20,18 @@ A Django backend boilerplate with one-click Docker Compose setup for Development
 
 ### Environment Setup
 
-Each environment has its own configuration:
+The setup automatically loads the appropriate environment configuration for each environment. No manual copying of environment files is required.
 
 #### Development Environment
 
-Includes pgAdmin for database inspection.
+Includes pgAdmin for database inspection and hot-reload capabilities.
 
 ```bash
-# Copy environment file
-cp .env.dev .env
-
-# Start all services
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Start all services (automatically loads .env.dev)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 # Or in detached mode
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Services available:
@@ -44,30 +41,26 @@ Services available:
 
 #### Test Environment
 
-Uses ephemeral volumes and runs tests.
+Uses ephemeral volumes and runs automated tests.
 
 ```bash
-# Copy environment file
-cp .env.test .env
-
-# Run tests
-docker-compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit
+# Run tests (automatically loads .env.test)
+docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit
 
 # Clean up
-docker-compose -f docker-compose.yml -f docker-compose.test.yml down -v
+docker compose -f docker-compose.yml -f docker-compose.test.yml down -v
 ```
 
 #### Staging Environment
 
-Production-like setup with restart policies.
+Production-like setup with restart policies and persistent storage.
 
 ```bash
-# Copy and configure environment file
-cp .env.staging .env
-# Edit .env to update SECRET_KEY, POSTGRES_PASSWORD, and ALLOWED_HOSTS
+# IMPORTANT: Update staging secrets before deploying
+# Edit .env.staging to update SECRET_KEY, POSTGRES_PASSWORD, and ALLOWED_HOSTS
 
-# Start services
-docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+# Start services (automatically loads .env.staging)
+docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ```
 
 #### Production Environment
@@ -75,12 +68,11 @@ docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 Optimized for production with multiple Gunicorn workers and minimal Prefect UI.
 
 ```bash
-# Copy and configure environment file
-cp .env.production .env
-# Edit .env to update SECRET_KEY, POSTGRES_PASSWORD, and ALLOWED_HOSTS
+# IMPORTANT: Update production secrets before deploying
+# Edit .env.production to update SECRET_KEY, POSTGRES_PASSWORD, and ALLOWED_HOSTS
 
-# Start services
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Start services (automatically loads .env.production)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 ## Architecture
@@ -158,37 +150,37 @@ PREFECT_API_URL=http://prefect-server:4200/api
 
 ```bash
 # View logs
-docker-compose logs -f django
+docker compose logs -f django
 
 # Execute Django management commands
-docker-compose exec django python manage.py makemigrations
-docker-compose exec django python manage.py migrate
-docker-compose exec django python manage.py createsuperuser
+docker compose exec django python manage.py makemigrations
+docker compose exec django python manage.py migrate
+docker compose exec django python manage.py createsuperuser
 
 # Access Django shell
-docker-compose exec django python manage.py shell
+docker compose exec django python manage.py shell
 
 # Access database
-docker-compose exec db psql -U django_dev_user -d django_dev_db
+docker compose exec db psql -U django_dev_user -d django_dev_db
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Remove volumes (careful!)
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Working with Prefect
 
 ```bash
 # Access Prefect CLI
-docker-compose exec prefect-agent prefect --help
+docker compose exec prefect-agent prefect --help
 
 # Create a new work pool
-docker-compose exec prefect-agent prefect work-pool create my-pool
+docker compose exec prefect-agent prefect work-pool create my-pool
 
 # Deploy a flow (from Django app)
-docker-compose exec django python manage.py shell
+docker compose exec django python manage.py shell
 >>> import prefect
 >>> # Your Prefect flow code here
 ```
@@ -229,18 +221,18 @@ docker-compose exec django python manage.py shell
 
 ```bash
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View all logs
-docker-compose logs
+docker compose logs
 
 # View specific service logs
-docker-compose logs django
-docker-compose logs db
-docker-compose logs prefect-server
+docker compose logs django
+docker compose logs db
+docker compose logs prefect-server
 
 # Follow logs in real-time
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ## Contributing

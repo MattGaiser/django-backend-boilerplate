@@ -1,5 +1,7 @@
 services:
   django:
+    env_file:
+      - .env.dev
     ports:
       - "8000:8000"
     environment:
@@ -10,9 +12,19 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
 
+  db:
+    env_file:
+      - .env.dev
+
   prefect-server:
+    env_file:
+      - .env.dev
     ports:
       - "4200:4200"
+
+  prefect-agent:
+    env_file:
+      - .env.dev
 
   pgadmin:
     image: dpage/pgadmin4:latest

@@ -1,10 +1,14 @@
 services:
   db:
+    env_file:
+      - .env.test
     volumes: 
       - type: tmpfs
         target: /var/lib/postgresql/data
 
   django:
+    env_file:
+      - .env.test
     environment:
       - DEBUG=false
     command: >
@@ -12,10 +16,14 @@ services:
              python manage.py test --keepdb"
 
   prefect-server:
+    env_file:
+      - .env.test
     environment:
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_UI_ENABLED: false
     ports: []
 
   prefect-agent:
+    env_file:
+      - .env.test
     command: echo "Prefect agent disabled in test environment"

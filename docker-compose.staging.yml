@@ -1,5 +1,7 @@
 services:
   django:
+    env_file:
+      - .env.staging
     ports:
       - "8000:8000"
     environment:
@@ -11,12 +13,18 @@ services:
              gunicorn DjangoBoilerplate.wsgi:application --bind 0.0.0.0:8000"
 
   prefect-server:
+    env_file:
+      - .env.staging
     ports:
       - "4200:4200"
     restart: unless-stopped
 
   prefect-agent:
+    env_file:
+      - .env.staging
     restart: unless-stopped
 
   db:
+    env_file:
+      - .env.staging
     restart: unless-stopped
