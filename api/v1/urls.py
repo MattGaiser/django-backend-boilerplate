@@ -14,6 +14,7 @@ from api.v1.views.auth import (
     refresh_auth_token,
     token_info
 )
+from api.v1.views.flow_trigger import trigger_hello_world_flow
 
 # Create the main router for v1 API
 router = DefaultRouter()
@@ -29,6 +30,9 @@ urlpatterns = [
     path('auth/revoke-token/', revoke_auth_token, name='api-token-revoke'),
     path('auth/refresh-token/', refresh_auth_token, name='api-token-refresh'),
     path('auth/token-info/', token_info, name='api-token-info'),
+    
+    # Flow trigger endpoints
+    path('flows/test-run/', trigger_hello_world_flow, name='trigger-hello-world-flow'),
     
     # Include router URLs
     path('', include(router.urls)),
