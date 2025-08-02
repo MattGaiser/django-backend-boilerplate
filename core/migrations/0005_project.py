@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_organization_organizationmembership_and_more'),
+        ('core', '0004_alter_organizationmembership_role'),
     ]
 
     operations = [

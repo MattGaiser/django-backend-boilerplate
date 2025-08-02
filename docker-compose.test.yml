@@ -12,8 +12,7 @@ services:
     environment:
       - DEBUG=false
     command: >
-      sh -c "pip install --user --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt &&
-             python manage.py migrate &&
+      sh -c "python manage.py migrate &&
              python manage.py test --keepdb"
 
   prefect-server:

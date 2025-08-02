@@ -61,8 +61,8 @@ echo "============= STARTING FRESH BUILD ============="
 # Run docker compose with force rebuild
 echo "Running docker compose with fresh build..."
 if [ "$ENV" = "dev" ]; then
-    # For dev environment, use the exact command as specified
-    docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+    # For dev environment, use the exact command as specified with build flag
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 else
     # For other environments, use the environment-specific file
     docker compose -f docker-compose.yml -f $DOCKER_COMPOSE_FILE up --build

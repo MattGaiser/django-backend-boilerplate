@@ -23,8 +23,12 @@ COPY . /app/
 # Create static files directory
 RUN mkdir -p /app/staticfiles
 
-# Create a non-root user with home directory
-RUN groupadd -r django && useradd -r -g django -m -d /home/django django && chown -R django:django /app
+# Create a non-root user with home directory and proper permissions
+RUN groupadd -r django && useradd -r -g django -m -d /home/django django && \
+    chown -R django:django /app && \
+    chown -R django:django /home/django && \
+    chmod -R 755 /home/django
+
 USER django
 
 # Set up Python user packages directory
