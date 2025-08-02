@@ -159,6 +159,11 @@ class Organization(BaseModel):
         help_text=_("Default language for the organization")
     )
     
+    is_experimental = models.BooleanField(
+        default=False,
+        help_text=_("Enable experimental features for this organization")
+    )
+    
     def __str__(self):
         """Return string representation of the organization."""
         return self.name
@@ -304,6 +309,11 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         help_text=_("IP address of the user's last login")
     )
     
+    is_experimental_user_override = models.BooleanField(
+        default=False,
+        help_text=_("Allow superuser to override experimental features (superuser only)")
+    )
+    
     # Many-to-many relationship with Organization through OrganizationMembership
     organizations = models.ManyToManyField(
         'core.Organization',
@@ -400,6 +410,25 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
             return default_org.language
         
         return LanguageChoices.get_default_language()  # Fallback to default language
+
+    def is_experimental_enabled(self):
+        """
+        Check if experimental features are enabled for this user.
+        
+        Returns:
+            bool: True if experimental features are enabled, False otherwise
+        """
+        # Superuser override takes precedence
+        if self.is_superuser and self.is_experimental_user_override:
+            return True
+        
+        # Check default organization's experimental flag
+        default_org = self.get_default_organization()
+        if default_org:
+            return default_org.is_experimental
+        
+        # Default to False if no organization
+        return False
 
     def __str__(self):
         """Return string representation of the user."""
