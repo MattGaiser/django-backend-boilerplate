@@ -11,6 +11,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -19,6 +20,9 @@ RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.pytho
 
 # Copy project
 COPY . /app/
+
+# Generate version file from Git metadata
+RUN python scripts/write_version_file.py
 
 # Create a non-root user with home directory and proper permissions
 RUN groupadd -r django && useradd -r -g django -m -d /home/django django && \

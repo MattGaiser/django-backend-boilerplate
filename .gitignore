@@ -51,3 +51,6 @@ Thumbs.db
 # Demo and temporary files
 demo.sh
 Dockerfile.test
+
+# Version file (generated at build time)
+version.json
