@@ -29,7 +29,7 @@ echo "============= DOCKER CLEANUP ============="
 
 # Stop and remove all containers from the docker-compose file
 echo "Stopping and removing all containers..."
-docker-compose -f docker-compose.yml -f $DOCKER_COMPOSE_FILE down --remove-orphans
+docker compose -f docker-compose.yml -f $DOCKER_COMPOSE_FILE down --remove-orphans
 
 # Remove any dangling containers with the project's name
 echo "Removing any dangling containers..."
@@ -47,8 +47,14 @@ echo "Removing project images to force rebuild..."
 docker images | grep "${PROJECT_NAME}_" | awk '{print $1":"$2}' | xargs -r docker rmi -f
 
 echo "============= STARTING FRESH BUILD ============="
-# Run docker-compose with force rebuild
-echo "Running docker-compose with fresh build..."
-docker-compose -f docker-compose.yml -f $DOCKER_COMPOSE_FILE up --build
+# Run docker compose with force rebuild
+echo "Running docker compose with fresh build..."
+if [ "$ENV" = "dev" ]; then
+    # For dev environment, use the exact command as specified
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+else
+    # For other environments, use the environment-specific file
+    docker compose -f docker-compose.yml -f $DOCKER_COMPOSE_FILE up --build
+fi
 
 exit $?

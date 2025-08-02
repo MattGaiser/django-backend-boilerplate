@@ -2,14 +2,17 @@ services:
   db:
     image: postgres:16-alpine
     environment:
+      # Use postgres as the default superuser instead of POSTGRES_USER
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    env_file:
+      - .env.dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -21,13 +24,12 @@ services:
       - DEBUG=${DEBUG}
       - SECRET_KEY=${SECRET_KEY}
       - USE_POSTGRES=true
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - PREFECT_API_URL=http://prefect-server:4200/api
+    env_file:
+      - .env.dev
     depends_on:
       db:
         condition: service_healthy
@@ -44,7 +46,8 @@ services:
     environment:
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_SERVER_API_PORT: 4200
-      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_prefect
+    env_file:
+      - .env.dev
     ports:
       - "4200:4200"
     depends_on:
@@ -54,16 +57,18 @@ services:
       - prefect_data:/opt/prefect
     command: prefect server start --host 0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 4200)); s.close()' || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 60s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:4200/api/health')\""]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 120s
 
   prefect-agent:
     image: prefecthq/prefect:3-latest
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
+    env_file:
+      - .env.dev
     depends_on:
       prefect-server:
         condition: service_healthy
@@ -71,7 +76,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/app
     command: >
-      sh -c "sleep 30 && 
+      sh -c "sleep 60 && 
              prefect work-pool create --type docker default-pool || true &&
              prefect worker start --pool default-pool"
 
