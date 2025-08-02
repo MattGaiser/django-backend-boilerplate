@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.CurrentUserMiddleware',
+    'core.logging.StructuredLoggingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -169,17 +170,40 @@ PREFECT_SERVER_PORT = config('PREFECT_SERVER_PORT', default='4200')
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Logging configuration
+# Configure structlog for structured JSON logging
+from core.logging import configure_structlog
+configure_structlog()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            'format': '{message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'json',
         },
     },
     'root': {
         'handlers': ['console'],
         'level': 'INFO' if DJANGO_ENV == 'production' else 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
