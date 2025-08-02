@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 30s
@@ -31,7 +32,7 @@ services:
       db:
         condition: service_healthy
       prefect-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - .:/app
     command: >
@@ -52,13 +53,20 @@ services:
     volumes:
       - prefect_data:/opt/prefect
     command: prefect server start --host 0.0.0.0
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:4200/api/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   prefect-agent:
     image: prefecthq/prefect:3-latest
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
     depends_on:
-      - prefect-server
+      prefect-server:
+        condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/app
