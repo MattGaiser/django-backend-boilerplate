@@ -1,15 +1,42 @@
-# Django Backend Boilerplate with Docker Compose
+# Django Backend Boilerplate
 
-A Django backend boilerplate with one-click Docker Compose setup for Development, Test, Staging, and Production environments. Includes Django + PostgreSQL + Prefect integration.
+An enterprise-ready Django backend boilerplate with comprehensive multi-tenant architecture, role-based access control (RBAC), and production-grade features. Includes one-click Docker Compose setup for all environments.
 
 ## Features
 
-- 🐳 Docker Compose setup for all environments
-- 🗄️ PostgreSQL database with environment-specific configurations
-- ⚡ Prefect integration for workflow management
-- 🔧 Environment-specific settings and overrides
-- 📊 pgAdmin included in development environment
-- 🚀 Production-ready with Gunicorn
+### 🏗️ Enterprise Architecture
+- **Custom User Model**: Email-based authentication with UUID primary keys
+- **Multi-Tenancy**: Organization-based data isolation with role-based permissions  
+- **RBAC System**: Admin, Manager, and Viewer roles with organization scoping
+- **Audit Trails**: Automatic tracking of created_by, updated_by, and timestamps
+- **Soft Delete**: Safe data removal with recovery capabilities
+- **PII Compliance**: Built-in PII field tracking and data protection
+
+### 🚀 API Framework
+- **Django REST Framework**: Token authentication with secure defaults
+- **API Versioning**: URL path versioning (`/api/v1/`) ready for evolution
+- **Comprehensive Permissions**: Organization-scoped access control
+- **Structured Responses**: Consistent error handling and pagination
+- **OpenAPI Ready**: Documented endpoints with translation support
+
+### 🌐 Internationalization & Localization
+- **Multi-Language Support**: English and French with easy extensibility
+- **User Preferences**: Per-user and per-organization language settings
+- **Translation Workflow**: Management commands for translation updates
+- **Timezone Support**: User-specific timezone handling
+
+### 🧪 Development & Testing
+- **Pytest Framework**: Comprehensive test suite with factories
+- **Factory Boy**: Test data generation with realistic fixtures
+- **Demo Data**: Automated demo user and organization creation
+- **Structured Logging**: JSON logging with request tracking
+
+### 🐳 Infrastructure
+- **Docker Compose**: Multi-environment setup (dev, test, staging, production)
+- **PostgreSQL**: Production-ready database with health checks
+- **Prefect Integration**: Workflow orchestration and task management
+- **Environment Isolation**: Separate configurations for each deployment stage
+- **pgAdmin**: Database administration interface (development)
 
 ## Quick Start
 
@@ -119,18 +146,40 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ## Architecture
 
-### Services
+### Core Models & Systems
+
+#### BaseModel Foundation
+All models inherit from `BaseModel` providing:
+- **UUID Primary Keys**: Scalable and secure identifiers
+- **Audit Fields**: Automatic `created_at`, `updated_at`, `created_by`, `updated_by`
+- **Soft Delete**: `deleted_at` field with custom managers
+- **PII Compliance**: Mandatory declaration of personally identifiable fields
+
+#### User & Organization System  
+- **Custom User Model**: Email-based authentication, timezone/language preferences
+- **Organization Model**: Multi-tenant isolation with subscription plans
+- **OrganizationMembership**: Through model managing user roles within organizations
+- **Role Hierarchy**: Admin (full access) → Manager (most features) → Viewer (read-only)
+
+#### API Framework
+- **Token Authentication**: Secure stateless authentication
+- **Organization Scoping**: All data automatically scoped to user's organizations  
+- **Permission Classes**: Custom DRF permissions for role-based access
+- **Versioned Endpoints**: `/api/v1/` with planned evolution path
+
+### Infrastructure Services
 
 1. **Django Application**
-   - Runs on port 8000
-   - Connects to PostgreSQL database
-   - Includes Prefect client configuration
+   - Runs on port 8000 (8001 in development)
+   - Custom User model with email authentication
+   - Structured logging with request tracking
    - Uses Gunicorn in staging/production
 
 2. **PostgreSQL Database**
    - Persistent volumes for dev/staging/production
    - Ephemeral storage for testing
    - Health checks for reliable startup
+   - Supports both Django and Prefect databases
 
 3. **Prefect Server**
    - Workflow orchestration server
@@ -188,6 +237,43 @@ PREFECT_API_URL=http://prefect-server:4200/api
 
 ## Development Workflow
 
+### Testing Framework
+
+The project uses a comprehensive testing setup with pytest:
+
+```bash
+# Run all tests in containerized environment
+docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit
+
+# Run tests locally (requires dependencies)
+pytest -v
+
+# Run specific test modules
+pytest core/tests/ -v
+pytest api/v1/tests/ -v
+
+# Run with coverage
+pytest --cov=core --cov=api -v
+```
+
+### Demo Data and Development
+
+Create demo data for immediate development:
+
+```bash
+# Seed demo data (creates users, organizations, memberships)
+docker compose exec django python manage.py seed_demo_data
+
+# Reset and reseed demo data
+docker compose exec django python manage.py seed_demo_data --clean
+
+# Create custom users programmatically
+docker compose exec django python manage.py shell
+>>> from core.factories import UserFactory, OrganizationFactory
+>>> user = UserFactory()
+>>> org = OrganizationFactory()
+```
+
 ### Common Commands
 
 ```bash
@@ -236,28 +322,133 @@ docker compose exec django python manage.py shell
 >>> # Your Prefect flow code here
 ```
 
+### API Development
+
+The boilerplate provides a production-ready API framework:
+
+```bash
+# Get authentication token
+curl -X POST http://localhost:8001/api/v1/auth/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@demo.com", "password": "admin123"}'
+
+# Use token for authenticated requests
+curl -H "Authorization: Token your_token_here" \
+  http://localhost:8001/api/v1/users/me/
+
+# Test organization-scoped endpoints
+curl -H "Authorization: Token your_token_here" \
+  http://localhost:8001/api/v1/organizations/
+```
+
+See [API_README.md](API_README.md) for complete API documentation with examples.
+
+### Working with Organizations & RBAC
+
+```python
+# Example: Creating organization memberships
+from core.models import User, Organization, OrganizationMembership
+from constants.roles import OrgRole
+
+# Get user and organization
+user = User.objects.get(email='user@demo.com')
+org = Organization.objects.get(name='Demo Organization')
+
+# Check user's role
+role = user.get_role(org)
+is_admin = user.has_role(org, OrgRole.ADMIN)
+
+# Create new membership
+OrganizationMembership.objects.create(
+    user=user,
+    organization=org, 
+    role=OrgRole.MANAGER,
+    is_default=True
+)
+```
+
+See [RBAC_USAGE.md](RBAC_USAGE.md) for detailed role-based access control examples.
+
+## Documentation
+
+This boilerplate includes comprehensive documentation for each major system:
+
+- **[API_README.md](API_README.md)** - Complete API documentation with authentication, endpoints, and examples
+- **[CORE_MODELS_README.md](CORE_MODELS_README.md)** - BaseModel, Custom User, and core architecture
+- **[RBAC_USAGE.md](RBAC_USAGE.md)** - Role-based access control implementation guide  
+- **[TRANSLATIONS.md](TRANSLATIONS.md)** - Internationalization workflow and translation management
+- **[CHANGELOG.md](CHANGELOG.md)** - Project changelog following semantic versioning
+
 ## Project Structure
 
 ```
 .
-├── DjangoBoilerplate/          # Django project
-│   ├── settings.py            # Environment-aware settings
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-├── docker-compose.yml         # Base services
+├── core/                       # Core models and business logic
+│   ├── models.py              # BaseModel, User, Organization, OrganizationMembership
+│   ├── admin.py               # Django admin configuration
+│   ├── factories.py           # Test data factories
+│   ├── middleware.py          # Custom middleware (user tracking, logging)
+│   ├── mixins.py              # Reusable model and view mixins
+│   └── management/commands/   # Custom management commands
+├── api/                        # REST API implementation
+│   └── v1/                    # API version 1
+│       ├── views/             # API viewsets and endpoints
+│       ├── serializers/       # DRF serializers
+│       ├── permissions.py     # Custom permission classes
+│       └── tests/             # API test suite
+├── constants/                  # Application constants and enums
+│   └── roles.py               # RBAC role definitions
+├── locale/                     # Translation files
+│   └── fr/LC_MESSAGES/        # French translations
+├── DjangoBoilerplate/          # Django project settings
+│   ├── settings.py            # Environment-aware configuration
+│   ├── urls.py                # URL routing
+│   ├── wsgi.py                # WSGI application
+│   └── asgi.py                # ASGI application
+├── docker-compose.yml         # Base Docker services
 ├── docker-compose.dev.yml     # Development overrides
-├── docker-compose.test.yml    # Test overrides
-├── docker-compose.staging.yml # Staging overrides
-├── docker-compose.prod.yml    # Production overrides
-├── Dockerfile                 # Django app container
+├── docker-compose.test.yml    # Test environment
+├── docker-compose.staging.yml # Staging environment  
+├── docker-compose.prod.yml    # Production environment
+├── Dockerfile                 # Django application container
 ├── requirements.txt           # Python dependencies
-├── .env.dev                   # Development environment
-├── .env.test                  # Test environment
-├── .env.staging               # Staging environment
-├── .env.production            # Production environment
+├── requirements-dev.txt       # Development dependencies
+├── pytest.ini                # Pytest configuration
+├── conftest.py                # Shared test fixtures
+├── .env.dev                   # Development environment variables
+├── .env.test                  # Test environment variables
+├── .env.staging               # Staging environment variables
+├── .env.production            # Production environment variables
 └── manage.py                  # Django management script
 ```
+
+## Enterprise Features
+
+This boilerplate is designed for production use with enterprise-grade features:
+
+### Security & Compliance
+- **PII Data Protection**: Built-in personally identifiable information field tracking
+- **Audit Trails**: Complete tracking of who created/modified each record and when
+- **Secure Authentication**: Token-based authentication with organization scoping
+- **Role-Based Permissions**: Granular access control with admin, manager, and viewer roles
+
+### Scalability & Maintainability  
+- **Multi-Tenant Architecture**: Organization-based data isolation supporting multiple clients
+- **UUID Primary Keys**: Collision-resistant identifiers suitable for distributed systems
+- **Soft Delete**: Safe data removal with ability to recover accidentally deleted records
+- **Database Optimization**: Proper indexing on foreign keys and frequently queried fields
+
+### Development Experience
+- **Comprehensive Testing**: Factory-based test data generation with pytest framework
+- **API Documentation**: Auto-generated documentation with examples and authentication
+- **Translation Ready**: Built-in i18n support with management commands for translation updates
+- **Structured Logging**: JSON-formatted logs with request tracking for observability
+
+### Production Deployment
+- **Environment Separation**: Distinct configurations for development, testing, staging, and production
+- **Health Checks**: Database and service health monitoring for reliable deployments
+- **Container Ready**: Optimized Docker images with proper user permissions and security
+- **Workflow Integration**: Prefect orchestration for background tasks and data pipelines
 
 ## Troubleshooting
 
@@ -288,9 +479,29 @@ docker compose logs -f
 
 ## Contributing
 
-1. Make changes in your development environment
-2. Test with the test environment setup
-3. Verify in staging before production deployment
+### Development Workflow
+
+1. **Set up development environment**: Use `./docker-cleanup.sh dev` for one-click setup
+2. **Make changes**: Modify code following the established patterns and architecture
+3. **Add tests**: Write pytest tests using factories for any new functionality  
+4. **Test changes**: Run `docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit`
+5. **Verify in staging**: Test in staging environment before production deployment
+6. **Update documentation**: Update relevant README files if adding new features
+
+### Architecture Guidelines
+
+- All models should inherit from `BaseModel` for consistency
+- Declare any PII fields in the model's `pii_fields` attribute
+- Use the RBAC system for access control rather than custom permissions
+- Follow the organization-scoped pattern for multi-tenant data access
+- Add translation strings using `gettext_lazy` for user-facing content
+
+### Testing Standards
+
+- Use factory_boy factories for creating test data
+- Write both unit and integration tests for new API endpoints
+- Test RBAC permissions for any organization-scoped functionality
+- Include edge cases and error conditions in test coverage
 
 ## License
 
