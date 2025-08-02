@@ -130,31 +130,25 @@ class TestSoftDeleteBehavior(TestCase, ThreadLocalTestMixin):
         """Test that soft deleted records are preserved in database."""
         self.clear_user_context()
         user = UserFactory()
-        user_id = str(user.id)  # Convert UUID to string
+        original_email = user.email
         
         # Soft delete the user
         user.soft_delete()
         
-        # Direct database inspection should still find the record
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, deleted_at FROM core_user WHERE id = %s",
-                [user_id]
-            )
-            result = cursor.fetchone()
-        
-        # Record should exist with deleted_at set
-        self.assertIsNotNone(result)
-        self.assertEqual(str(result[0]), user_id)
-        self.assertIsNotNone(result[1])  # deleted_at should be set
+        # The record should still be retrievable by ID
+        # (this tests that it's preserved in the database)
+        user_from_db = User.objects.get(id=user.id)
+        self.assertEqual(user_from_db.email, original_email)
+        self.assertTrue(user_from_db.is_deleted)
+        self.assertIsNotNone(user_from_db.deleted_at)
     
     def test_model_delete_vs_soft_delete(self):
         """Test difference between model.delete() and soft_delete()."""
         self.clear_user_context()
         user1 = UserFactory()
         user2 = UserFactory()
-        user1_id = str(user1.id)  # Convert UUID to string
-        user2_id = str(user2.id)  # Convert UUID to string
+        user1_id = user1.id
+        user2_id = user2.id
         
         # Soft delete user1
         user1.soft_delete()
@@ -162,29 +156,25 @@ class TestSoftDeleteBehavior(TestCase, ThreadLocalTestMixin):
         # Hard delete user2 (Django's default delete)
         user2.delete()
         
-        # Direct database inspection
-        with connection.cursor() as cursor:
-            # Check user1 (soft deleted)
-            cursor.execute(
-                "SELECT id, deleted_at FROM core_user WHERE id = %s",
-                [user1_id]
-            )
-            soft_deleted_result = cursor.fetchone()
-            
-            # Check user2 (hard deleted)
-            cursor.execute(
-                "SELECT id FROM core_user WHERE id = %s",
-                [user2_id]
-            )
-            hard_deleted_result = cursor.fetchone()
+        # Test retrieval behavior
+        # Soft deleted record should still be retrievable
+        try:
+            soft_deleted_user = User.objects.get(id=user1_id)
+            self.assertTrue(soft_deleted_user.is_deleted)
+            soft_delete_exists = True
+        except User.DoesNotExist:
+            soft_delete_exists = False
         
-        # Soft deleted record should exist with deleted_at
-        self.assertIsNotNone(soft_deleted_result)
-        self.assertEqual(str(soft_deleted_result[0]), user1_id)
-        self.assertIsNotNone(soft_deleted_result[1])  # deleted_at
+        # Hard deleted record should not be retrievable
+        try:
+            User.objects.get(id=user2_id)
+            hard_delete_exists = True
+        except User.DoesNotExist:
+            hard_delete_exists = False
         
-        # Hard deleted record should not exist
-        self.assertIsNone(hard_deleted_result)
+        # Assertions
+        self.assertTrue(soft_delete_exists, "Soft deleted record should still exist")
+        self.assertFalse(hard_delete_exists, "Hard deleted record should not exist")
     
     def test_is_deleted_property(self):
         """Test the is_deleted property accurately reflects soft delete state."""
@@ -230,6 +220,8 @@ class TestAuditFieldsWithSoftDelete(TestCase, ThreadLocalTestMixin):
     
     def test_soft_delete_does_not_trigger_audit_signals(self):
         """Test that soft_delete does not update audit fields due to update_fields usage."""
+        # Create users without context first to avoid circular reference
+        self.clear_user_context()
         creator = UserFactory()
         deleter = UserFactory()
         
