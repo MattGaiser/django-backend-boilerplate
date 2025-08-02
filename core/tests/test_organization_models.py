@@ -4,7 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 
-from core.models import Organization, OrganizationMembership, OrgRole
+from core.models import Organization, OrganizationMembership
+from constants.roles import OrgRole
 from core.factories import UserFactory, OrganizationFactory, OrganizationMembershipFactory
 
 User = get_user_model()
@@ -16,25 +17,22 @@ class TestOrgRole(TestCase):
     def test_org_role_choices(self):
         """Test that OrgRole has the expected choices."""
         expected_choices = [
-            ('super_admin', 'Super Admin'),
             ('admin', 'Admin'),
-            ('editor', 'Editor'),
+            ('manager', 'Manager'),
             ('viewer', 'Viewer'),
         ]
         self.assertEqual(OrgRole.choices, expected_choices)
     
     def test_org_role_values(self):
         """Test OrgRole enum values."""
-        self.assertEqual(OrgRole.SUPER_ADMIN, 'super_admin')
         self.assertEqual(OrgRole.ADMIN, 'admin')
-        self.assertEqual(OrgRole.EDITOR, 'editor')
+        self.assertEqual(OrgRole.MANAGER, 'manager')
         self.assertEqual(OrgRole.VIEWER, 'viewer')
     
     def test_org_role_labels(self):
         """Test OrgRole enum labels."""
-        self.assertEqual(OrgRole.SUPER_ADMIN.label, 'Super Admin')
         self.assertEqual(OrgRole.ADMIN.label, 'Admin')
-        self.assertEqual(OrgRole.EDITOR.label, 'Editor')
+        self.assertEqual(OrgRole.MANAGER.label, 'Manager')
         self.assertEqual(OrgRole.VIEWER.label, 'Viewer')
 
 
@@ -216,7 +214,7 @@ class TestOrganizationMembership(TestCase):
         membership3 = OrganizationMembership.objects.create(
             user=self.user,
             organization=org3,
-            role=OrgRole.EDITOR,
+            role=OrgRole.MANAGER,
             is_default=False
         )
         
@@ -379,7 +377,7 @@ class TestOrganizationMembershipFactory(TestCase):
         membership = OrganizationMembershipFactory.create_admin_membership()
         self.assertEqual(membership.role, OrgRole.ADMIN)
     
-    def test_create_super_admin_membership(self):
-        """Test factory method for super admin membership."""
-        membership = OrganizationMembershipFactory.create_super_admin_membership()
-        self.assertEqual(membership.role, OrgRole.SUPER_ADMIN)
+    def test_create_manager_membership(self):
+        """Test factory method for manager membership."""
+        membership = OrganizationMembershipFactory.create_manager_membership()
+        self.assertEqual(membership.role, OrgRole.MANAGER)
