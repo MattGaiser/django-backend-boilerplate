@@ -1,14 +1,64 @@
 import threading
+import logging
 from django.db.models.signals import pre_save, class_prepared
 from django.dispatch import receiver
 from django.core.exceptions import ImproperlyConfigured
 from django.apps import apps
 from django.db import connection
+from django.conf import settings
 from .models import BaseModel, User
 
 
 # Thread-local storage for the current user
 _thread_locals = threading.local()
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+def get_pii_field_names():
+    """
+    Get the list of field names that are considered PII.
+    
+    Can be configured via Django settings CORE_PII_FIELD_NAMES.
+    """
+    return getattr(settings, 'CORE_PII_FIELD_NAMES', {
+        'email', 'full_name', 'first_name', 'last_name', 'name',
+        'phone', 'phone_number', 'address', 'street_address',
+        'city', 'postal_code', 'zip_code', 'ssn', 'social_security_number',
+        'date_of_birth', 'birth_date', 'ip_address', 'last_login_ip'
+    })
+
+
+def get_model_pii_fields(model):
+    """
+    Helper to introspect and return all pii_fields for any model.
+    
+    Args:
+        model: Django model class
+        
+    Returns:
+        list: List of PII field names declared in the model's pii_fields attribute,
+              or empty list if not declared
+    """
+    return getattr(model, 'pii_fields', [])
+
+
+def get_model_field_names(model):
+    """
+    Safely get all field names from a model.
+    
+    Args:
+        model: Django model class
+        
+    Returns:
+        set: Set of field names, or empty set if unable to retrieve
+    """
+    try:
+        return {field.name for field in model._meta.get_fields() 
+                if hasattr(field, 'name')}
+    except (AttributeError, TypeError):
+        return set()
 
 
 def set_current_user(user):
@@ -21,7 +71,6 @@ def get_current_user():
     return getattr(_thread_locals, 'user', None)
 
 
-@receiver(pre_save, sender=User)
 @receiver(pre_save)
 def auto_assign_user_fields(sender, instance, **kwargs):
     """
@@ -34,12 +83,16 @@ def auto_assign_user_fields(sender, instance, **kwargs):
     
     current_user = get_current_user()
     if current_user and current_user.is_authenticated:
-        # If this is a new instance (no pk), set created_by
-        if not instance.pk and hasattr(instance, 'created_by'):
+        # Check if this is a new instance by checking the _state.adding attribute
+        # or using kwargs.get('created', True) fallback
+        is_new_instance = getattr(instance, '_state', None) and instance._state.adding
+        
+        # If this is a new instance, set created_by
+        if is_new_instance and hasattr(instance, 'created_by'):
             instance.created_by = current_user
         
-        # Always update updated_by for existing instances
-        if instance.pk and hasattr(instance, 'updated_by'):
+        # Always update updated_by for all saves (both create and update)
+        if hasattr(instance, 'updated_by'):
             instance.updated_by = current_user
 
 
@@ -81,20 +134,12 @@ def validate_pii_fields(sender, **kwargs):
         return
     
     try:
-        # Common PII field names to check for
-        pii_field_names = {
-            'email', 'full_name', 'first_name', 'last_name', 'name',
-            'phone', 'phone_number', 'address', 'street_address',
-            'city', 'postal_code', 'zip_code', 'ssn', 'social_security_number',
-            'date_of_birth', 'birth_date', 'ip_address', 'last_login_ip'
-        }
+        # Get configurable PII field names
+        pii_field_names = get_pii_field_names()
         
         # Get all field names from the model - safely
-        try:
-            model_field_names = {field.name for field in sender._meta.get_fields() 
-                                if hasattr(field, 'name')}
-        except (AttributeError, TypeError):
-            # Skip if we can't get fields safely
+        model_field_names = get_model_field_names(sender)
+        if not model_field_names:
             return
         
         # Check if any PII fields exist in the model
@@ -102,9 +147,9 @@ def validate_pii_fields(sender, **kwargs):
         
         if found_pii_fields:
             # Check if the model has pii_fields defined as a class attribute
-            pii_fields = getattr(sender, 'pii_fields', None)
+            declared_pii_fields = get_model_pii_fields(sender)
             
-            if pii_fields is None:
+            if declared_pii_fields is None:
                 raise ImproperlyConfigured(
                     f"Model {sender.__name__} contains PII fields {found_pii_fields} "
                     "but does not declare pii_fields. Please add a class attribute "
@@ -112,7 +157,7 @@ def validate_pii_fields(sender, **kwargs):
                 )
             
             # Check if all found PII fields are declared
-            declared_fields = set(pii_fields)
+            declared_fields = set(declared_pii_fields)
             undeclared_fields = found_pii_fields - declared_fields
             
             if undeclared_fields:
@@ -121,6 +166,21 @@ def validate_pii_fields(sender, **kwargs):
                     f"that are not declared in pii_fields. Current pii_fields: {declared_fields}. "
                     "Please update pii_fields to include all PII fields."
                 )
-    except Exception:
-        # Silently skip validation during Django model initialization issues
+            
+            # Log warnings for potential ambiguous PII detection
+            ambiguous_fields = model_field_names.intersection({
+                'name', 'title', 'description', 'content', 'note', 'comment'
+            })
+            
+            ambiguous_undeclared = ambiguous_fields - declared_fields
+            if ambiguous_undeclared:
+                logger.warning(
+                    f"Model {sender.__name__} has fields {ambiguous_undeclared} "
+                    "that might contain PII but are not declared in pii_fields. "
+                    "Please review if these fields should be included in pii_fields."
+                )
+                
+    except Exception as e:
+        # Log the exception but don't break Django startup
+        logger.debug(f"PII validation skipped for {sender.__name__}: {e}")
         pass
