@@ -20,6 +20,7 @@ local_settings.py
 # Media and static files (if collected locally)
 /media/
 /static/
+/staticfiles/
 
 # Log files
 *.log
