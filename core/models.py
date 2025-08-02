@@ -5,14 +5,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-
-
-class OrgRole(models.TextChoices):
-    """Enumeration of organization roles for role-based access control."""
-    SUPER_ADMIN = 'super_admin', _('Super Admin')
-    ADMIN = 'admin', _('Admin')
-    EDITOR = 'editor', _('Editor')
-    VIEWER = 'viewer', _('Viewer')
+from constants.roles import OrgRole
 
 
 class BaseModel(models.Model):
@@ -281,6 +274,20 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
             return membership.organization
         except OrganizationMembership.DoesNotExist:
             return None
+    
+    def has_role(self, org, role):
+        """
+        Check if this user has the specified role in the given organization.
+        
+        Args:
+            org: Organization instance or ID
+            role: Role string (from OrgRole.choices)
+            
+        Returns:
+            bool: True if user has the role in the organization, False otherwise
+        """
+        user_role = self.get_role(org)
+        return user_role == role
 
     def __str__(self):
         """Return string representation of the user."""

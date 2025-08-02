@@ -1,7 +1,8 @@
 import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
-from core.models import User, Organization, OrganizationMembership, OrgRole
+from core.models import User, Organization, OrganizationMembership
+from constants.roles import OrgRole
 
 fake = Faker()
 
@@ -76,7 +77,7 @@ class OrganizationMembershipFactory(DjangoModelFactory):
         return cls(**kwargs)
     
     @classmethod
-    def create_super_admin_membership(cls, **kwargs):
-        """Create a super admin membership."""
-        kwargs.update({'role': OrgRole.SUPER_ADMIN})
+    def create_manager_membership(cls, **kwargs):
+        """Create a manager membership."""
+        kwargs.update({'role': OrgRole.MANAGER})
         return cls(**kwargs)
