@@ -47,3 +47,7 @@ local_settings.py
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Demo and temporary files
+demo.sh
+Dockerfile.test

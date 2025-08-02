@@ -1,9 +1,8 @@
 services:
   db:
-    volumes:
-      - postgres_test_data:/var/lib/postgresql/data
-    tmpfs:
-      - /var/lib/postgresql/data
+    volumes: 
+      - type: tmpfs
+        target: /var/lib/postgresql/data
 
   django:
     environment:
@@ -20,6 +19,3 @@ services:
 
   prefect-agent:
     command: echo "Prefect agent disabled in test environment"
-
-volumes:
-  postgres_test_data:
