@@ -8,6 +8,27 @@ from django.core.exceptions import ImproperlyConfigured, ValidationError
 from constants.roles import OrgRole
 
 
+class SoftDeleteManager(models.Manager):
+    """
+    Manager that excludes soft deleted records by default.
+    
+    This manager provides a default queryset that filters out
+    records where deleted_at is not null.
+    """
+    
+    def get_queryset(self):
+        """Return queryset excluding soft deleted records."""
+        return super().get_queryset().filter(deleted_at__isnull=True)
+    
+    def all_with_deleted(self):
+        """Return all records including soft deleted ones."""
+        return super().get_queryset()
+    
+    def deleted_only(self):
+        """Return only soft deleted records."""
+        return super().get_queryset().filter(deleted_at__isnull=False)
+
+
 class BaseModel(models.Model):
     """
     Abstract base model that provides UUID primary key, timestamps, 
@@ -72,6 +93,10 @@ class BaseModel(models.Model):
     #     help_text=_("Organization this record belongs to")
     # )
     
+    # Managers
+    objects = SoftDeleteManager()  # Default manager excludes soft deleted records
+    all_objects = models.Manager()  # Manager that includes all records
+    
     def soft_delete(self):
         """Mark this record as deleted without removing it from the database."""
         self.deleted_at = timezone.now()
@@ -122,7 +147,19 @@ class Organization(BaseModel):
 
 
 class UserManager(BaseUserManager):
-    """Custom manager for the User model."""
+    """Custom manager for the User model that includes soft delete functionality."""
+    
+    def get_queryset(self):
+        """Return queryset excluding soft deleted records."""
+        return super().get_queryset().filter(deleted_at__isnull=True)
+    
+    def all_with_deleted(self):
+        """Return all records including soft deleted ones."""
+        return super().get_queryset()
+    
+    def deleted_only(self):
+        """Return only soft deleted records."""
+        return super().get_queryset().filter(deleted_at__isnull=False)
     
     def create_user(self, email, full_name, password=None, **extra_fields):
         """Create and save a regular user with the given email and password."""
@@ -222,6 +259,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     )
     
     objects = UserManager()
+    all_objects = models.Manager()  # Manager that includes all records
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']

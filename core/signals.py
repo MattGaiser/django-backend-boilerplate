@@ -103,8 +103,8 @@ def auto_assign_user_fields(sender, instance, **kwargs):
         # or using kwargs.get('created', True) fallback
         is_new_instance = getattr(instance, '_state', None) and instance._state.adding
         
-        # If this is a new instance, set created_by
-        if is_new_instance and hasattr(instance, 'created_by'):
+        # If this is a new instance, set created_by only if not already set
+        if is_new_instance and hasattr(instance, 'created_by') and not instance.created_by:
             instance.created_by = current_user
         
         # Always update updated_by for all saves (both create and update)

@@ -19,7 +19,9 @@ class TestOrgRole(TestCase):
         expected_choices = [
             ('admin', 'Admin'),
             ('manager', 'Manager'),
+            ('editor', 'Editor'),
             ('viewer', 'Viewer'),
+            ('super_admin', 'Super Admin'),
         ]
         self.assertEqual(OrgRole.choices, expected_choices)
     
@@ -27,7 +29,9 @@ class TestOrgRole(TestCase):
         """Test OrgRole enum values."""
         self.assertEqual(OrgRole.ADMIN, 'admin')
         self.assertEqual(OrgRole.MANAGER, 'manager')
+        self.assertEqual(OrgRole.EDITOR, 'editor')
         self.assertEqual(OrgRole.VIEWER, 'viewer')
+        self.assertEqual(OrgRole.SUPER_ADMIN, 'super_admin')
     
     def test_org_role_labels(self):
         """Test OrgRole enum labels."""
