@@ -1,0 +1,22 @@
+services:
+  django:
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn DjangoBoilerplate.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  prefect-server:
+    environment:
+      PREFECT_UI_ENABLED: false
+    restart: unless-stopped
+
+  prefect-agent:
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
