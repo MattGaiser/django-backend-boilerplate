@@ -18,9 +18,27 @@ A Django backend boilerplate with one-click Docker Compose setup for Development
 - Docker
 - Docker Compose
 
-### Environment Setup
+### One-Command Bootstrap (Development)
 
-The setup automatically loads the appropriate environment configuration for each environment. No manual copying of environment files is required.
+For the fastest onboarding experience, use the cleanup script that automatically sets up everything:
+
+```bash
+# Complete setup with demo data (recommended for new developers)
+./docker-cleanup.sh dev
+```
+
+This will:
+1. 🧹 Clean up any existing containers/networks/images
+2. 🐳 Start all Docker services (PostgreSQL, Prefect, Django)
+3. 📊 Apply database migrations
+4. 🌱 Seed demo data (users, organizations)
+5. 🚀 Start the development server
+
+After completion, you'll see demo credentials output to the terminal for immediate access.
+
+### Manual Development Setup
+
+If you prefer manual control or are troubleshooting:
 
 #### Development Environment
 
@@ -35,9 +53,33 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Services available:
-- Django: http://localhost:8000
+- Django: http://localhost:8001 (note: port 8001 for dev environment)
 - Prefect UI: http://localhost:4200
 - pgAdmin: http://localhost:5050 (admin@admin.com / admin)
+
+### Demo Data and Credentials
+
+The development environment automatically creates demo data for immediate use:
+
+**🔑 Demo Credentials:**
+- **Super Admin**: admin@demo.com / admin123 (Django admin access)
+- **Editor**: user@demo.com / user123 (API access only)  
+- **Viewer**: viewer@demo.com / viewer123 (API access only)
+
+**📍 Access URLs:**
+- Django Admin: http://localhost:8001/admin/
+- API Root: http://localhost:8001/
+- Prefect UI: http://localhost:4200/
+- pgAdmin: http://localhost:5050/
+
+**🌱 Manual Demo Data Management:**
+```bash
+# Seed demo data manually
+docker compose exec django python manage.py seed_demo_data
+
+# Reset and reseed demo data
+docker compose exec django python manage.py seed_demo_data --clean
+```
 
 #### Test Environment
 
@@ -157,6 +199,12 @@ docker compose exec django python manage.py makemigrations
 docker compose exec django python manage.py migrate
 docker compose exec django python manage.py createsuperuser
 
+# Seed demo data (users, organizations)
+docker compose exec django python manage.py seed_demo_data
+
+# Reset demo data
+docker compose exec django python manage.py seed_demo_data --clean
+
 # Access Django shell
 docker compose exec django python manage.py shell
 
@@ -168,6 +216,9 @@ docker compose down
 
 # Remove volumes (careful!)
 docker compose down -v
+
+# Quick restart with fresh build
+./docker-cleanup.sh dev
 ```
 
 ### Working with Prefect
