@@ -363,3 +363,90 @@ class OrganizationMembership(BaseModel):
     def __str__(self):
         """Return string representation of the membership."""
         return f"{self.user.email} - {self.organization.name} ({self.get_role_display()})"
+
+
+class Project(BaseModel):
+    """
+    Sample model that inherits from BaseModel for demonstration purposes.
+    
+    Represents a project within an organization that can have multiple collaborators.
+    This model demonstrates the factory pattern and BaseModel inheritance.
+    """
+    
+    # Define PII fields as a class attribute
+    pii_fields = []
+    
+    class Meta:
+        verbose_name = _("Project")
+        verbose_name_plural = _("Projects")
+        indexes = [
+            models.Index(fields=['name', 'is_active']),
+            models.Index(fields=['status']),
+        ]
+    
+    class StatusChoices(models.TextChoices):
+        """Enumeration of project status options."""
+        PLANNING = 'planning', _('Planning')
+        ACTIVE = 'active', _('Active')
+        ON_HOLD = 'on_hold', _('On Hold')
+        COMPLETED = 'completed', _('Completed')
+        CANCELLED = 'cancelled', _('Cancelled')
+    
+    name = models.CharField(
+        max_length=255,
+        help_text=_("Name of the project")
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text=_("Detailed description of the project")
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.PLANNING,
+        help_text=_("Current status of the project")
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Designates whether this project is active")
+    )
+    
+    organization = models.ForeignKey(
+        'core.Organization',
+        on_delete=models.CASCADE,
+        related_name='projects',
+        help_text=_("Organization this project belongs to")
+    )
+    
+    start_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("Project start date")
+    )
+    
+    end_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("Project end date")
+    )
+    
+    def clean(self):
+        """Validate that end_date is after start_date."""
+        super().clean()
+        
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError({
+                'end_date': _('End date must be after start date.')
+            })
+    
+    def save(self, *args, **kwargs):
+        """Override save to run clean validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        """Return string representation of the project."""
+        return f"{self.name} ({self.organization.name})"
