@@ -1,0 +1,21 @@
+Defaulting to user installation because normal site-packages is not writeable
+Collecting django-allauth
+  Downloading django_allauth-65.10.0.tar.gz
+     - 1.9 MB 204.8 MB/s 0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: Django>=4.2.16 in /home/runner/.local/lib/python3.12/site-packages (from django-allauth) (5.2.4)
+Requirement already satisfied: asgiref>=3.8.1 in /home/runner/.local/lib/python3.12/site-packages (from django-allauth) (3.9.1)
+Requirement already satisfied: sqlparse>=0.3.1 in /home/runner/.local/lib/python3.12/site-packages (from Django>=4.2.16->django-allauth) (0.5.3)
+Building wheels for collected packages: django-allauth
+  Building wheel for django-allauth (pyproject.toml): started
+  Building wheel for django-allauth (pyproject.toml): finished with status 'done'
+  Created wheel for django-allauth: filename=django_allauth-65.10.0-py3-none-any.whl size=1700458 sha256=67c671f12642bd5fe95257056e419d315226826e38cd638be540dc13d5611f2e
+  Stored in directory: /home/runner/.cache/pip/wheels/0a/b9/ee/fa3d0e28776609bba779492a17e53f46cc519ebeef62af673e
+Successfully built django-allauth
+Installing collected packages: django-allauth
+Successfully installed django-allauth-65.10.0
