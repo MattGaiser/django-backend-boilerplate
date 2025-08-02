@@ -14,7 +14,9 @@ from api.v1.views.auth import (
     refresh_auth_token,
     token_info
 )
+
 from api.v1.views.flow_trigger import trigger_hello_world_flow
+from api.v1.views.version import version_info
 
 # Create the main router for v1 API
 router = DefaultRouter()
@@ -25,6 +27,9 @@ router.register(r'public/users', PublicUserViewSet, basename='public-users')
 
 # URL patterns for v1 API
 urlpatterns = [
+    # Version endpoint  
+    path('version/', version_info, name='api-version'),
+    
     # Authentication endpoints
     path('auth/token/', obtain_auth_token, name='api-token-auth'),
     path('auth/revoke-token/', revoke_auth_token, name='api-token-revoke'),
