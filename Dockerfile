@@ -23,9 +23,12 @@ COPY . /app/
 # Create static files directory
 RUN mkdir -p /app/staticfiles
 
-# Create a non-root user
-RUN groupadd -r django && useradd -r -g django django && chown -R django:django /app
+# Create a non-root user with home directory
+RUN groupadd -r django && useradd -r -g django -m -d /home/django django && chown -R django:django /app
 USER django
+
+# Set up Python user packages directory
+ENV PATH="/home/django/.local/bin:$PATH"
 
 # Expose port
 EXPOSE 8000
