@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
     'core.apps.CoreConfig',
 ]
 
@@ -167,4 +169,53 @@ LOGGING = {
         'handlers': ['console'],
         'level': 'INFO' if DJANGO_ENV == 'production' else 'DEBUG',
     },
+}
+
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    # Authentication
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    
+    # Permissions
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    
+    # Renderers - JSONRenderer only in production, add BrowsableAPI for dev
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ] + (['rest_framework.renderers.BrowsableAPIRenderer'] if DEBUG else []),
+    
+    # Parsers
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    
+    # Pagination
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
+    
+    # Versioning
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1'],
+    'VERSION_PARAM': 'version',
+    
+    # Throttling - scaffolded but not active
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': None,  # Disabled for now
+        'user': None,  # Disabled for now
+    },
+    
+    # Exception handling
+    'EXCEPTION_HANDLER': 'api.v1.exceptions.custom_exception_handler',
 }
