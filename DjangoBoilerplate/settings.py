@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+# Environment
+DJANGO_ENV = config('DJANGO_ENV', default='development')
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2%l-xabc_5q%*ch4c+_s4z12)fopd!cl2(h$6t(hj24glyd)nk'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-2%l-xabc_5q%*ch4c+_s4z12)fopd!cl2(h$6t(hj24glyd)nk')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=lambda v: v.split(','))
 
 
 # Application definition
@@ -75,12 +80,25 @@ WSGI_APPLICATION = 'DjangoBoilerplate.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Default to PostgreSQL for containerized environments, fallback to SQLite
+if config('USE_POSTGRES', default=False, cast=bool):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('POSTGRES_DB', default='django_db'),
+            'USER': config('POSTGRES_USER', default='django_user'),
+            'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
+            'HOST': config('POSTGRES_HOST', default='db'),
+            'PORT': config('POSTGRES_PORT', default='5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -127,3 +145,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'core.User'
+
+# Prefect Configuration
+PREFECT_API_URL = config('PREFECT_API_URL', default='http://prefect-server:4200/api')
+PREFECT_SERVER_HOST = config('PREFECT_SERVER_HOST', default='prefect-server')
+PREFECT_SERVER_PORT = config('PREFECT_SERVER_PORT', default='4200')
+
+# Static files configuration for production
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO' if DJANGO_ENV == 'production' else 'DEBUG',
+    },
+}

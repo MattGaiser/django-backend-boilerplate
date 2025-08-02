@@ -1,0 +1,42 @@
+services:
+  django:
+    env_file:
+      - .env.dev
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=true
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  db:
+    env_file:
+      - .env.dev
+
+  prefect-server:
+    env_file:
+      - .env.dev
+    ports:
+      - "4200:4200"
+
+  prefect-agent:
+    env_file:
+      - .env.dev
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  pgadmin_data:
