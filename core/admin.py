@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from .models import User, Organization, OrganizationMembership
+from .models import User, Organization, OrganizationMembership, Tag
 
 
 @admin.register(User)
@@ -100,4 +100,36 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
         readonly_fields = list(self.readonly_fields)
         if obj:  # Editing an existing object
             readonly_fields.append('id')
+        return readonly_fields
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    """Admin configuration for the Tag model."""
+    
+    list_display = ('name', 'organization', 'content_type', 'content_object_display', 'created_at', 'created_by')
+    list_filter = ('organization', 'content_type', 'created_at')
+    search_fields = ('name', 'organization__name')
+    ordering = ('organization', 'name')
+    
+    fieldsets = (
+        (None, {'fields': ('name', 'organization')}),
+        (_('Tagged Object'), {'fields': ('content_type', 'object_id', 'content_object_display')}),
+        (_('Audit'), {'fields': ('created_by', 'updated_by', 'created_at', 'updated_at')}),
+    )
+    
+    readonly_fields = ('content_object_display', 'created_at', 'updated_at', 'created_by', 'updated_by')
+    
+    def content_object_display(self, obj):
+        """Display the tagged object in a readable format."""
+        if obj.content_object:
+            return str(obj.content_object)
+        return _('Object not found')
+    content_object_display.short_description = _('Tagged Object')
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Make ID field readonly for existing objects."""
+        readonly_fields = list(self.readonly_fields)
+        if obj:  # Editing an existing object
+            readonly_fields.extend(['id', 'content_type', 'object_id'])
         return readonly_fields
