@@ -1,0 +1,388 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Django Backend Boilerplate\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-02 19:35+0000\n"
+"PO-Revision-Date: 2025-08-02 19:30+0000\n"
+"Last-Translator: Django Backend Boilerplate\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: api/v1/exceptions.py:118
+msgid "Resource not found."
+msgstr ""
+
+#: api/v1/exceptions.py:133
+msgid "Permission denied."
+msgstr ""
+
+#: api/v1/permissions.py:21
+msgid "You do not have permission to perform this action in this organization."
+msgstr ""
+
+#: api/v1/serializers/user.py:22 core/models.py:183
+msgid "Full name of the user"
+msgstr "Nom complet de l'utilisateur"
+
+#: api/v1/serializers/user.py:27
+msgid "Email address (read-only)"
+msgstr "Adresse e-mail (lecture seule)"
+
+#: api/v1/serializers/user.py:33 core/models.py:205
+msgid "Preferred language code"
+msgstr "Code de langue préféré"
+
+#: api/v1/serializers/user.py:39 core/models.py:212
+msgid "User's timezone"
+msgstr "Fuseau horaire de l'utilisateur"
+
+#: api/v1/serializers/user.py:44 core/models.py:198
+msgid "Date when the user joined"
+msgstr "Date d'inscription de l'utilisateur"
+
+#: api/v1/serializers/user.py:49
+msgid "Whether the user account is active"
+msgstr ""
+
+#: api/v1/serializers/user.py:70
+msgid "Full name cannot be empty."
+msgstr ""
+
+#: api/v1/serializers/user.py:73
+msgid "Full name must be at least 2 characters long."
+msgstr ""
+
+#: api/v1/serializers/user.py:83
+msgid "Language code is too long."
+msgstr ""
+
+#: api/v1/serializers/user.py:92
+msgid "Timezone string is too long."
+msgstr ""
+
+#: api/v1/serializers/user.py:105 core/models.py:106
+msgid "Name of the organization"
+msgstr ""
+
+#: api/v1/serializers/user.py:111
+msgid "ID of the organization"
+msgstr ""
+
+#: api/v1/serializers/user.py:117
+msgid "Human-readable role name"
+msgstr ""
+
+#: api/v1/serializers/user.py:143 core/models.py:228
+msgid "Organizations this user belongs to"
+msgstr ""
+
+#: api/v1/serializers/user.py:147
+msgid "User's default organization"
+msgstr ""
+
+#: api/v1/serializers/user.py:179
+msgid "Password for the new user (minimum 8 characters)"
+msgstr ""
+
+#: api/v1/serializers/user.py:184
+msgid "Password confirmation"
+msgstr ""
+
+#: api/v1/serializers/user.py:207
+msgid "Passwords do not match."
+msgstr ""
+
+#: api/v1/views/auth.py:34
+msgid "Unable to log in with provided credentials."
+msgstr ""
+
+#: api/v1/views/auth.py:39
+msgid "User account is disabled."
+msgstr ""
+
+#: api/v1/views/auth.py:46
+msgid "Must include email and password."
+msgstr ""
+
+#: api/v1/views/auth.py:133
+msgid "Token revoked successfully."
+msgstr ""
+
+#: api/v1/views/auth.py:138 api/v1/views/auth.py:188
+msgid "No active token found."
+msgstr ""
+
+#: api/v1/views/user.py:132
+msgid "New passwords do not match."
+msgstr ""
+
+#: api/v1/views/user.py:142
+msgid "Current password is incorrect."
+msgstr ""
+
+#: api/v1/views/user.py:151
+msgid "Password changed successfully."
+msgstr ""
+
+#: common/permissions/org_scoped.py:60
+msgid ""
+"View must implement get_organization() method when using role-based "
+"permissions."
+msgstr ""
+
+#: constants/roles.py:7
+msgid "Admin"
+msgstr "Administrateur"
+
+#: constants/roles.py:8
+msgid "Manager"
+msgstr "Gestionnaire"
+
+#: constants/roles.py:9
+msgid "Editor"
+msgstr "Éditeur"
+
+#: constants/roles.py:10
+msgid "Viewer"
+msgstr "Observateur"
+
+#: constants/roles.py:11
+msgid "Super Admin"
+msgstr "Super Administrateur"
+
+#: core/admin.py:18
+msgid "Personal info"
+msgstr ""
+
+#: core/admin.py:19
+msgid "Permissions"
+msgstr ""
+
+#: core/admin.py:22
+msgid "Important dates"
+msgstr ""
+
+#: core/admin.py:23 core/admin.py:63 core/admin.py:93
+msgid "Audit"
+msgstr ""
+
+#: core/admin.py:24
+msgid "Technical"
+msgstr ""
+
+#: core/admin.py:72
+msgid "Members"
+msgstr ""
+
+#: core/management/commands/update_translations.py:43
+msgid "Updating translation files for languages: {}"
+msgstr ""
+
+#: core/management/commands/update_translations.py:49
+msgid "Processing language: {}"
+msgstr ""
+
+#: core/management/commands/update_translations.py:53
+msgid "✓ Updated messages for {}"
+msgstr ""
+
+#: core/management/commands/update_translations.py:57
+msgid "✗ Error updating messages for {}: {}"
+msgstr ""
+
+#: core/management/commands/update_translations.py:62
+msgid "Compiling translation files..."
+msgstr ""
+
+#: core/management/commands/update_translations.py:66
+msgid "✓ Translation files compiled successfully"
+msgstr ""
+
+#: core/management/commands/update_translations.py:70
+msgid "✗ Error compiling messages: {}"
+msgstr ""
+
+#: core/management/commands/update_translations.py:74
+msgid "Translation update completed!"
+msgstr ""
+
+#: core/models.py:29
+msgid "Unique identifier for this record"
+msgstr ""
+
+#: core/models.py:34
+msgid "Timestamp when this record was created"
+msgstr ""
+
+#: core/models.py:39
+msgid "Timestamp when this record was last updated"
+msgstr ""
+
+#: core/models.py:45
+msgid "Timestamp when this record was soft deleted"
+msgstr ""
+
+#: core/models.py:54
+msgid "User who created this record"
+msgstr ""
+
+#: core/models.py:63
+msgid "User who last updated this record"
+msgstr ""
+
+#: core/models.py:101
+msgid "Organization"
+msgstr "Organisation"
+
+#: core/models.py:102
+msgid "Organizations"
+msgstr "Organisations"
+
+#: core/models.py:111
+msgid "Description of the organization"
+msgstr ""
+
+#: core/models.py:116
+msgid "Designates whether this organization is active"
+msgstr ""
+
+#: core/models.py:123
+msgid "Default language for the organization"
+msgstr "Langue par défaut pour l'organisation"
+
+#: core/models.py:137
+msgid "The Email field must be set"
+msgstr ""
+
+#: core/models.py:139
+msgid "The Full Name field must be set"
+msgstr ""
+
+#: core/models.py:154
+msgid "Superuser must have is_staff=True."
+msgstr ""
+
+#: core/models.py:156
+msgid "Superuser must have is_superuser=True."
+msgstr ""
+
+#: core/models.py:173
+msgid "User"
+msgstr "Utilisateur"
+
+#: core/models.py:174
+msgid "Users"
+msgstr "Utilisateurs"
+
+#: core/models.py:178
+msgid "Email address used for authentication"
+msgstr ""
+
+#: core/models.py:188
+msgid "Designates whether this user should be treated as active"
+msgstr ""
+
+#: core/models.py:193
+msgid "Designates whether the user can log into the admin site"
+msgstr ""
+
+#: core/models.py:218
+msgid "IP address of the user's last login"
+msgstr ""
+
+#: core/models.py:333
+msgid "Organization Membership"
+msgstr ""
+
+#: core/models.py:334
+msgid "Organization Memberships"
+msgstr ""
+
+#: core/models.py:345
+msgid "User who is a member of the organization"
+msgstr ""
+
+#: core/models.py:352
+msgid "Organization the user belongs to"
+msgstr ""
+
+#: core/models.py:359
+msgid "Role of the user in the organization"
+msgstr ""
+
+#: core/models.py:364
+msgid "Whether this is the user's default organization"
+msgstr ""
+
+#: core/models.py:380
+msgid "User can only have one default organization."
+msgstr ""
+
+#: core/models.py:405
+msgid "Project"
+msgstr "Projet"
+
+#: core/models.py:406
+msgid "Projects"
+msgstr "Projets"
+
+#: core/models.py:414
+msgid "Planning"
+msgstr "Planification"
+
+#: core/models.py:415
+msgid "Active"
+msgstr "Actif"
+
+#: core/models.py:416
+msgid "On Hold"
+msgstr ""
+
+#: core/models.py:417
+msgid "Completed"
+msgstr ""
+
+#: core/models.py:418
+msgid "Cancelled"
+msgstr ""
+
+#: core/models.py:422
+msgid "Name of the project"
+msgstr ""
+
+#: core/models.py:427
+msgid "Detailed description of the project"
+msgstr ""
+
+#: core/models.py:434
+msgid "Current status of the project"
+msgstr ""
+
+#: core/models.py:439
+msgid "Designates whether this project is active"
+msgstr ""
+
+#: core/models.py:446
+msgid "Organization this project belongs to"
+msgstr ""
+
+#: core/models.py:452
+msgid "Project start date"
+msgstr ""
+
+#: core/models.py:458
+msgid "Project end date"
+msgstr ""
+
+#: core/models.py:467
+msgid "End date must be after start date."
+msgstr ""

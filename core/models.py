@@ -116,6 +116,13 @@ class Organization(BaseModel):
         help_text=_("Designates whether this organization is active")
     )
     
+    language = models.CharField(
+        max_length=10,
+        default='en',
+        blank=True,
+        help_text=_("Default language for the organization")
+    )
+    
     def __str__(self):
         """Return string representation of the organization."""
         return self.name
@@ -288,6 +295,24 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         """
         user_role = self.get_role(org)
         return user_role == role
+    
+    def get_effective_language(self):
+        """
+        Get the effective language for this user.
+        
+        Returns:
+            str: User's preferred language if set, otherwise organization's default language,
+                 or 'en' if no organization default is available.
+        """
+        if self.language:
+            return self.language
+        
+        # Get default organization's language
+        default_org = self.get_default_organization()
+        if default_org and default_org.language:
+            return default_org.language
+        
+        return 'en'  # Fallback to English
 
     def __str__(self):
         """Return string representation of the user."""
