@@ -24,7 +24,7 @@ COPY . /app/
 RUN mkdir -p /app/staticfiles
 
 # Create a non-root user
-RUN useradd -m -u 1000 django && chown -R django:django /app
+RUN groupadd -r django && useradd -r -g django django && chown -R django:django /app
 USER django
 
 # Expose port
