@@ -4,7 +4,15 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+
+
+class OrgRole(models.TextChoices):
+    """Enumeration of organization roles for role-based access control."""
+    SUPER_ADMIN = 'super_admin', _('Super Admin')
+    ADMIN = 'admin', _('Admin')
+    EDITOR = 'editor', _('Editor')
+    VIEWER = 'viewer', _('Viewer')
 
 
 class BaseModel(models.Model):
@@ -84,6 +92,40 @@ class BaseModel(models.Model):
     def __str__(self):
         """Default string representation using the model name and ID."""
         return f"{self.__class__.__name__} ({str(self.id)[:8]}...)"
+
+
+class Organization(BaseModel):
+    """
+    Organization model for multi-tenant support.
+    
+    Represents an organization that users can belong to with different roles.
+    """
+    
+    # Define PII fields as a class attribute
+    pii_fields = []
+    
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+    
+    name = models.CharField(
+        max_length=255,
+        help_text=_("Name of the organization")
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text=_("Description of the organization")
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Designates whether this organization is active")
+    )
+    
+    def __str__(self):
+        """Return string representation of the organization."""
+        return self.name
 
 
 class UserManager(BaseUserManager):
@@ -176,14 +218,15 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         help_text=_("IP address of the user's last login")
     )
     
-    # Organization field will be added later when Organization model is implemented
-    # organization = models.ForeignKey(
-    #     'core.Organization',
-    #     on_delete=models.CASCADE,
-    #     null=True,
-    #     blank=True,
-    #     help_text=_("Organization this user belongs to")
-    # )
+    # Many-to-many relationship with Organization through OrganizationMembership
+    organizations = models.ManyToManyField(
+        'core.Organization',
+        through='core.OrganizationMembership',
+        through_fields=('user', 'organization'),
+        related_name='members',
+        blank=True,
+        help_text=_("Organizations this user belongs to")
+    )
     
     objects = UserManager()
     
@@ -198,6 +241,118 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
         """Return a short name for the user."""
         return self.full_name.split()[0] if self.full_name else self.email
     
+    def get_membership(self, organization):
+        """
+        Get the OrganizationMembership for this user in the specified organization.
+        
+        Args:
+            organization: Organization instance or ID
+            
+        Returns:
+            OrganizationMembership instance or None if not found
+        """
+        try:
+            return self.organization_memberships.get(organization=organization)
+        except OrganizationMembership.DoesNotExist:
+            return None
+    
+    def get_role(self, organization):
+        """
+        Get the role of this user in the specified organization.
+        
+        Args:
+            organization: Organization instance or ID
+            
+        Returns:
+            Role string (from OrgRole.choices) or None if not a member
+        """
+        membership = self.get_membership(organization)
+        return membership.role if membership else None
+    
+    def get_default_organization(self):
+        """
+        Get the default organization for this user.
+        
+        Returns:
+            Organization instance or None if no default is set
+        """
+        try:
+            membership = self.organization_memberships.get(is_default=True)
+            return membership.organization
+        except OrganizationMembership.DoesNotExist:
+            return None
+
     def __str__(self):
         """Return string representation of the user."""
         return self.email
+
+
+class OrganizationMembership(BaseModel):
+    """
+    Through model for User-Organization many-to-many relationship.
+    
+    Defines the role and settings for a user's membership in an organization.
+    """
+    
+    # Define PII fields as a class attribute
+    pii_fields = []
+    
+    class Meta:
+        verbose_name = _("Organization Membership")
+        verbose_name_plural = _("Organization Memberships")
+        unique_together = [['user', 'organization']]
+        indexes = [
+            models.Index(fields=['user', 'is_default']),
+            models.Index(fields=['organization', 'role']),
+        ]
+    
+    user = models.ForeignKey(
+        'core.User',
+        on_delete=models.CASCADE,
+        related_name='organization_memberships',
+        help_text=_("User who is a member of the organization")
+    )
+    
+    organization = models.ForeignKey(
+        'core.Organization',
+        on_delete=models.CASCADE,
+        related_name='user_memberships',
+        help_text=_("Organization the user belongs to")
+    )
+    
+    role = models.CharField(
+        max_length=20,
+        choices=OrgRole.choices,
+        default=OrgRole.VIEWER,
+        help_text=_("Role of the user in the organization")
+    )
+    
+    is_default = models.BooleanField(
+        default=False,
+        help_text=_("Whether this is the user's default organization")
+    )
+    
+    def clean(self):
+        """Validate that only one membership per user can be default."""
+        super().clean()
+        
+        if self.is_default and self.user_id:
+            # Check if another membership for this user is already default
+            existing_default = OrganizationMembership.objects.filter(
+                user=self.user,
+                is_default=True
+            ).exclude(pk=self.pk)
+            
+            if existing_default.exists():
+                raise ValidationError({
+                    'is_default': _('User can only have one default organization.')
+                })
+    
+    def save(self, *args, **kwargs):
+        """Override save to run clean validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        """Return string representation of the membership."""
+        return f"{self.user.email} - {self.organization.name} ({self.get_role_display()})"
