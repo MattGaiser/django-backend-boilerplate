@@ -503,6 +503,173 @@ docker compose logs -f
 - Test RBAC permissions for any organization-scoped functionality
 - Include edge cases and error conditions in test coverage
 
+## Frontend Integration
+
+This Django backend is designed to work seamlessly with frontend applications, particularly React-based SPAs. The following features are specifically configured for frontend integration:
+
+### CORS Configuration
+
+CORS (Cross-Origin Resource Sharing) is configured to allow requests from frontend development servers:
+
+```python
+# Allowed origins for CORS requests
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    # React development server
+    "http://127.0.0.1:3000",   # Alternative React development server 
+    "http://0.0.0.0:3000",     # Docker-based React development
+]
+```
+
+In development mode (`DEBUG=True`), all origins are allowed for convenience. In production, only explicitly listed origins are permitted.
+
+### API Discovery
+
+The API provides discovery endpoints to help frontend applications understand available functionality:
+
+**Base API Root** - `GET /api/`
+```json
+{
+  "message": "Django Backend Boilerplate API",
+  "versions": {
+    "v1": "http://localhost:8001/api/v1/"
+  },
+  "authentication": {
+    "login": "http://localhost:8001/api/v1/auth/token/",
+    "status": "http://localhost:8001/api/v1/auth/status/",
+    "refresh": "http://localhost:8001/api/v1/auth/refresh-token/",
+    "revoke": "http://localhost:8001/api/v1/auth/revoke-token/"
+  },
+  "docs": {
+    "version": "http://localhost:8001/api/v1/version/"
+  }
+}
+```
+
+### Authentication Status
+
+Frontend applications can check authentication status without requiring valid credentials:
+
+**Authentication Status** - `GET /api/v1/auth/status/`
+
+```javascript
+// Example frontend usage
+const checkAuthStatus = async () => {
+  const response = await fetch('/api/v1/auth/status/', {
+    headers: {
+      'Authorization': `Token ${localStorage.getItem('authToken')}`
+    }
+  });
+  const data = await response.json();
+  
+  if (data.authenticated) {
+    console.log('User is authenticated:', data.user);
+  } else {
+    console.log('User is not authenticated');
+  }
+};
+```
+
+### Token-Based Authentication
+
+The API uses token-based authentication suitable for SPAs:
+
+1. **Login**: `POST /api/v1/auth/token/` with email/password
+2. **Check Status**: `GET /api/v1/auth/status/` (returns auth status)
+3. **Refresh Token**: `POST /api/v1/auth/refresh-token/` (generates new token)
+4. **Logout**: `POST /api/v1/auth/revoke-token/` (invalidates token)
+
+### Frontend Development Workflow
+
+1. Start the Django backend: `./docker-cleanup.sh dev`
+2. Backend runs on `http://localhost:8001`
+3. Start your React frontend on `http://localhost:3000`
+4. CORS is automatically configured to allow requests between the two
+
+### Rate Limiting
+
+API requests are rate-limited to prevent abuse:
+- **Anonymous users**: 100 requests per hour
+- **Authenticated users**: 1000 requests per hour
+
+Rate limits can be configured in `settings.py` under `REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']`.
+
+## Security
+
+This Django backend implements comprehensive security measures suitable for production deployment:
+
+### Headers and Content Security
+
+The following security headers are automatically configured:
+
+- **X-Content-Type-Options**: `nosniff` - Prevents MIME type sniffing attacks
+- **X-Frame-Options**: `DENY` - Prevents clickjacking attacks  
+- **X-XSS-Protection**: `1; mode=block` - Enables browser XSS filtering
+- **Content Security Policy**: Basic CSP headers to prevent code injection
+
+### HTTPS and Transport Security
+
+For production deployments (`DEBUG=False`), additional security measures are enforced:
+
+- **HSTS (HTTP Strict Transport Security)**: Forces HTTPS connections for 1 year
+- **SSL Redirect**: Automatically redirects HTTP requests to HTTPS
+- **Secure Cookies**: Session and CSRF cookies marked as secure
+
+### CSRF Protection
+
+CSRF protection is intelligently configured:
+
+- **Session-based requests**: Full CSRF protection enabled
+- **Token-based API requests**: CSRF automatically exempted for API endpoints using `Authorization: Token` headers
+- **Trusted Origins**: Frontend origins whitelisted for CSRF tokens
+
+### Authentication Security
+
+- **Token Authentication**: Secure stateless authentication suitable for SPAs
+- **Password Validation**: Django's built-in password validators enforce strong passwords
+- **Inactive User Protection**: Inactive users cannot authenticate
+- **Audit Trails**: All user actions tracked with timestamps and user attribution
+
+### Database Security
+
+- **UUID Primary Keys**: Prevents enumeration attacks and provides collision-resistant identifiers
+- **Soft Delete**: Safe data removal with recovery capabilities
+- **PII Compliance**: Built-in tracking of personally identifiable information fields
+- **Organization Scoping**: Multi-tenant data isolation prevents cross-organization data access
+
+### Production Security Checklist
+
+Before deploying to production:
+
+1. **Change Default Secret Key**: Update `SECRET_KEY` in `.env.production`
+2. **Set Strong Database Password**: Update `POSTGRES_PASSWORD`
+3. **Configure Allowed Hosts**: Set proper domain names in `ALLOWED_HOSTS`
+4. **Review CORS Origins**: Remove development origins from `CORS_ALLOWED_ORIGINS`
+5. **Enable HTTPS**: Configure SSL certificates and reverse proxy
+6. **Monitor Rate Limits**: Adjust throttling rates based on expected traffic
+7. **Review CSP Policies**: Customize Content Security Policy for your frontend assets
+
+### Security Monitoring
+
+The structured logging system captures security-relevant events:
+
+```json
+{
+  "timestamp": "2023-01-01T00:00:00Z",
+  "level": "WARNING", 
+  "event": "authentication_failed",
+  "request_id": "abc123",
+  "remote_addr": "192.168.1.100",
+  "user_agent": "Mozilla/5.0...",
+  "message": "Invalid token authentication attempt"
+}
+```
+
+Monitor logs for:
+- Failed authentication attempts
+- Rate limit violations  
+- CSRF token mismatches
+- Suspicious request patterns
+
 ## License
 
 This project is licensed under the MIT License.

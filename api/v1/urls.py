@@ -12,7 +12,8 @@ from api.v1.views.auth import (
     obtain_auth_token,
     revoke_auth_token, 
     refresh_auth_token,
-    token_info
+    token_info,
+    auth_status
 )
 
 from api.v1.views.flow_trigger import trigger_hello_world_flow
@@ -35,6 +36,7 @@ urlpatterns = [
     path('auth/revoke-token/', revoke_auth_token, name='api-token-revoke'),
     path('auth/refresh-token/', refresh_auth_token, name='api-token-refresh'),
     path('auth/token-info/', token_info, name='api-token-info'),
+    path('auth/status/', auth_status, name='api-auth-status'),
     
     # Flow trigger endpoints
     path('flows/test-run/', trigger_hello_world_flow, name='trigger-hello-world-flow'),

@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from core.demo_views import LoggingDemoView
+from api.views import api_root
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', api_root, name='api-root'),
     path('api/v1/', include('api.v1.urls')),
     path('demo/logging/', LoggingDemoView.as_view(), name='logging-demo'),
 ]

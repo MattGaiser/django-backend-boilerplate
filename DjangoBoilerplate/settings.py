@@ -42,17 +42,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
     'core.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'core.middleware.TokenBasedCSRFExemptMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.CurrentUserMiddleware',
     'core.logging.StructuredLoggingMiddleware',
@@ -242,16 +244,54 @@ REST_FRAMEWORK = {
     'ALLOWED_VERSIONS': ['v1'],
     'VERSION_PARAM': 'version',
     
-    # Throttling - scaffolded but not active
+    # Throttling - enabled with reasonable defaults
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': None,  # Disabled for now
-        'user': None,  # Disabled for now
+        'anon': '100/hour',      # Anonymous users: 100 requests per hour
+        'user': '1000/hour',     # Authenticated users: 1000 requests per hour
     },
     
     # Exception handling
     'EXCEPTION_HANDLER': 'api.v1.exceptions.custom_exception_handler',
 }
+
+# CORS Configuration for Frontend Integration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    # React development server
+    "http://127.0.0.1:3000",   # Alternative React development server
+    "http://0.0.0.0:3000",     # Docker-based React development
+]
+
+# Additional CORS settings for development
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in debug mode
+
+# CSRF Configuration for Token-Based Authentication
+# Since we use token authentication for API endpoints, we can exempt API URLs from CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://0.0.0.0:3000",
+]
+
+# Security Headers Configuration
+SECURE_CONTENT_TYPE_NOSNIFF = True          # X-Content-Type-Options: nosniff
+X_FRAME_OPTIONS = 'DENY'                    # X-Frame-Options: DENY
+SECURE_BROWSER_XSS_FILTER = True           # X-XSS-Protection: 1; mode=block
+
+# Content Security Policy (basic configuration)
+SECURE_CSP_DEFAULT_SRC = "'self'"
+SECURE_CSP_SCRIPT_SRC = "'self' 'unsafe-inline'"
+SECURE_CSP_STYLE_SRC = "'self' 'unsafe-inline'"
+SECURE_CSP_IMG_SRC = "'self' data: https:"
+SECURE_CSP_CONNECT_SRC = "'self'"
+
+# Additional security headers for production
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000           # HSTS header for 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True               # Redirect HTTP to HTTPS

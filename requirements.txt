@@ -5,3 +5,4 @@ python-decouple>=3.8
 gunicorn>=21.0.0
 djangorestframework>=3.16.0
 structlog>=24.5.0
+django-cors-headers>=4.4.0
