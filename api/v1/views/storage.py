@@ -12,6 +12,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import HttpResponse, Http404
 from django.utils.translation import gettext_lazy as _
@@ -127,7 +128,7 @@ class StorageAPIView(viewsets.ViewSet):
                 {'error': str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
-        except ValidationError as e:
+        except (ValidationError, DRFValidationError) as e:
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -175,7 +176,7 @@ class StorageAPIView(viewsets.ViewSet):
                 'expires_in_seconds': expire_seconds
             })
             
-        except ValidationError as e:
+        except (ValidationError, DRFValidationError) as e:
             if "not found" in str(e).lower():
                 return Response(
                     {'error': _('File not found')},
@@ -225,7 +226,7 @@ class StorageAPIView(viewsets.ViewSet):
                 status=status.HTTP_204_NO_CONTENT
             )
             
-        except ValidationError as e:
+        except (ValidationError, DRFValidationError) as e:
             if "not found" in str(e).lower():
                 return Response(
                     {'error': _('File not found')},
@@ -316,7 +317,7 @@ class StorageAPIView(viewsets.ViewSet):
             
             return Response(serializer.data)
             
-        except ValidationError as e:
+        except (ValidationError, DRFValidationError) as e:
             if "not found" in str(e).lower():
                 return Response(
                     {'error': _('File not found')},

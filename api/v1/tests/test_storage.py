@@ -78,14 +78,20 @@ class TestStorageAPI:
             content = self.test_file_content
         return SimpleUploadedFile(name, content, content_type="text/plain")
 
-    @patch('core.storage.GCSStorage')
-    def test_upload_file_success_admin(self, mock_storage_class):
+    @patch('core.services.storage.StorageService')
+    def test_upload_file_success_admin(self, mock_storage_service_class):
         """Test successful file upload as admin."""
-        # Mock storage
-        mock_storage = MagicMock()
-        mock_storage_class.return_value = mock_storage
-        mock_storage.save.return_value = "orgs/org-id/general/test.txt"
-        mock_storage.url.return_value = "https://storage.googleapis.com/bucket/file"
+        # Mock storage service
+        mock_service = MagicMock()
+        mock_storage_service_class.return_value = mock_service
+        mock_service.upload_file.return_value = {
+            'path': 'orgs/org-id/documents/test.txt',
+            'name': 'test.txt',
+            'size': 1234,
+            'content_type': 'text/plain',
+            'category': 'documents',
+            'url': 'https://storage.googleapis.com/bucket/file'
+        }
         
         self.client.force_authenticate(user=self.admin_user)
         
@@ -101,14 +107,20 @@ class TestStorageAPI:
         assert 'file' in response.data
         assert response.data['message'] == 'File uploaded successfully'
 
-    @patch('core.storage.GCSStorage')
-    def test_upload_file_success_manager(self, mock_storage_class):
+    @patch('core.services.storage.StorageService')
+    def test_upload_file_success_manager(self, mock_storage_service_class):
         """Test successful file upload as manager."""
-        # Mock storage
-        mock_storage = MagicMock()
-        mock_storage_class.return_value = mock_storage
-        mock_storage.save.return_value = "orgs/org-id/general/test.txt"
-        mock_storage.url.return_value = "https://storage.googleapis.com/bucket/file"
+        # Mock storage service
+        mock_service = MagicMock()
+        mock_storage_service_class.return_value = mock_service
+        mock_service.upload_file.return_value = {
+            'path': 'orgs/org-id/general/test.txt',
+            'name': 'test.txt',
+            'size': 1234,
+            'content_type': 'text/plain',
+            'category': 'general',
+            'url': 'https://storage.googleapis.com/bucket/file'
+        }
         
         self.client.force_authenticate(user=self.manager_user)
         
