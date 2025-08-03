@@ -15,11 +15,11 @@ from api.v1.views.auth import (
     revoke_auth_token,
     token_info,
 )
+from api.v1.views.demo import LoggingDemoView
 from api.v1.views.flow_trigger import trigger_hello_world_flow
+from api.v1.views.health import HealthCheckView
 from api.v1.views.user import PublicUserViewSet, UserViewSet
 from api.v1.views.version import version_info
-from api.v1.views.health import HealthCheckView
-from api.v1.views.demo import LoggingDemoView
 from api.views import api_root
 
 # Create the main router for v1 API
@@ -32,15 +32,12 @@ router.register(r"public/users", PublicUserViewSet, basename="public-users")
 # URL patterns for v1 API
 urlpatterns = [
     # API discovery endpoint
-    path('', api_root, name='api-root'),
-    
+    path("", api_root, name="api-root"),
     # System endpoints
-    path('version/', version_info, name='api-version'),
-    path('health/', HealthCheckView.as_view(), name='api-health-check'),
-
+    path("version/", version_info, name="api-version"),
+    path("health/", HealthCheckView.as_view(), name="api-health-check"),
     # Demo endpoints
-    path('demo/logging/', LoggingDemoView.as_view(), name='api-logging-demo'),
-    
+    path("demo/logging/", LoggingDemoView.as_view(), name="api-logging-demo"),
     # Authentication endpoints
     path("auth/token/", obtain_auth_token, name="api-token-auth"),
     path("auth/revoke-token/", revoke_auth_token, name="api-token-revoke"),
