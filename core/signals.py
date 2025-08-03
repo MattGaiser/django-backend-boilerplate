@@ -55,9 +55,11 @@ def get_model_pii_fields(model):
         
     Returns:
         list: List of PII field names declared in the model's pii_fields attribute,
-              or empty list if not declared
+              or None if not declared
     """
-    return getattr(model, 'pii_fields', [])
+    if hasattr(model, 'pii_fields'):
+        return model.pii_fields
+    return None
 
 
 def get_model_field_names(model):
