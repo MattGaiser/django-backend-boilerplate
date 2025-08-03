@@ -6,7 +6,6 @@ test case for the flow triggering API endpoint.
 """
 
 from prefect import flow, task
-import time
 
 
 @task
@@ -17,10 +16,11 @@ def say_hello():
     return message
 
 
-@task  
+@task
 def get_timestamp():
     """Get current timestamp for the flow execution."""
     import datetime
+
     timestamp = datetime.datetime.now().isoformat()
     print(f"Flow executed at: {timestamp}")
     return timestamp
@@ -30,22 +30,18 @@ def get_timestamp():
 def hello_world():
     """
     Simple hello world flow that demonstrates basic Prefect functionality.
-    
+
     Returns:
         dict: Dictionary containing greeting message and timestamp
     """
     print("🚀 Starting Hello World flow...")
-    
+
     # Execute tasks
     greeting = say_hello()
     timestamp = get_timestamp()
-    
-    result = {
-        "message": greeting,
-        "timestamp": timestamp,
-        "status": "completed"
-    }
-    
+
+    result = {"message": greeting, "timestamp": timestamp, "status": "completed"}
+
     print(f"✅ Flow completed successfully: {result}")
     return result
 

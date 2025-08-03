@@ -77,7 +77,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/app
     command: >
-      sh -c "sleep 60 && 
+      sh -c "pip install prefect-docker &&
+             sleep 60 && 
              prefect work-pool create --type docker default-pool || true &&
              prefect worker start --pool default-pool"
 

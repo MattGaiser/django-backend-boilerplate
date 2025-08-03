@@ -11,7 +11,7 @@ class HealthCheckView(View):
     """
     Health check endpoint for Cloud Run health checks
     """
-    
+
     def get(self, request):
         """
         Perform health checks and return status
@@ -22,7 +22,7 @@ class HealthCheckView(View):
             'environment': getattr(settings, 'DJANGO_ENV', 'unknown'),
             'checks': {}
         }
-        
+
         # Check database connectivity
         try:
             db_conn = connections['default']
@@ -33,7 +33,7 @@ class HealthCheckView(View):
             health_status['status'] = 'unhealthy'
             health_status['checks']['database'] = f'error: {str(e)}'
             logger.error("Health check: database connection failed", error=str(e))
-        
+
         # Check basic Django functionality
         try:
             # Test that Django is responding
@@ -43,8 +43,8 @@ class HealthCheckView(View):
             health_status['status'] = 'unhealthy'
             health_status['checks']['django'] = f'error: {str(e)}'
             logger.error("Health check: Django check failed", error=str(e))
-        
+
         # Return appropriate HTTP status code
         status_code = 200 if health_status['status'] == 'healthy' else 503
-        
+
         return JsonResponse(health_status, status=status_code)
