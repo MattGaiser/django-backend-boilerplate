@@ -168,6 +168,50 @@ def refresh_auth_token(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
+def auth_status(request):
+    """
+    Check the current user's authentication status.
+    
+    GET /api/v1/auth/status/
+    
+    Returns authentication status and user information if authenticated.
+    This endpoint is useful for frontend applications to check if a user
+    is currently logged in and get basic user information.
+    
+    Response (authenticated):
+    {
+        "authenticated": true,
+        "user": {
+            "id": "uuid",
+            "email": "user@example.com",
+            "full_name": "User Name",
+            "organizations": [...]
+        }
+    }
+    
+    Response (unauthenticated):
+    {
+        "authenticated": false,
+        "user": null
+    }
+    """
+    if request.user.is_authenticated:
+        from api.v1.serializers.user import UserWithOrganizationsSerializer
+        user_data = UserWithOrganizationsSerializer(request.user).data
+        
+        return Response({
+            'authenticated': True,
+            'user': user_data
+        }, status=status.HTTP_200_OK)
+    else:
+        return Response({
+            'authenticated': False,
+            'user': None
+        }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def token_info(request):
     """
