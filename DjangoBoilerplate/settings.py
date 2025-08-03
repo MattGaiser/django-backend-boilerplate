@@ -364,3 +364,25 @@ SOCIALACCOUNT_PROVIDERS = {
         },
     },
 }
+
+# Google Cloud Storage Configuration
+USE_GCS_EMULATOR = config("USE_GCS_EMULATOR", default=False, cast=bool)
+GCS_BUCKET_NAME = config("GCS_BUCKET_NAME", default="dev-app-assets")
+GCS_EMULATOR_HOST = config("GCS_EMULATOR_HOST", default="http://fake-gcs-server:9090")
+
+# GCS client configuration
+if USE_GCS_EMULATOR:
+    # Configuration for local development with fake-gcs-server
+    GCS_CLIENT_OPTIONS = {
+        "api_endpoint": GCS_EMULATOR_HOST,
+    }
+    # Disable authentication for emulator
+    import os
+    os.environ["STORAGE_EMULATOR_HOST"] = GCS_EMULATOR_HOST.replace("http://", "")
+else:
+    # Production configuration
+    GCS_CLIENT_OPTIONS = {}
+
+# Storage settings for uploaded files
+DEFAULT_FILE_STORAGE = "core.storage.GCSStorage"
+GCS_DEFAULT_ACL = None  # Use bucket default ACL

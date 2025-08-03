@@ -60,6 +60,12 @@ resource "google_project_iam_member" "app_service_account_secret_accessor" {
   member  = "serviceAccount:${google_service_account.app_service_account.email}"
 }
 
+resource "google_project_iam_member" "app_service_account_storage_admin" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.app_service_account.email}"
+}
+
 # Artifact Registry for Docker images
 module "artifact_registry" {
   source = "../modules/artifact-registry"
@@ -154,6 +160,9 @@ module "django_backend" {
     POSTGRES_USER = module.database.database_user
     POSTGRES_PORT = "5432"
     ALLOWED_HOSTS = "*.run.app,${local.environment}-django-backend-*.run.app"
+    # Google Cloud Storage configuration
+    GCS_BUCKET_NAME = module.app_storage.bucket_name
+    USE_GCS_EMULATOR = "false"
   }
 
   secrets = {
@@ -230,6 +239,47 @@ module "frontend_hosting" {
   project_id  = var.project_id
   bucket_name = "${local.environment}-frontend-${random_id.bucket_suffix.hex}"
   labels      = local.labels
+}
+
+# Application cloud storage
+module "app_storage" {
+  source = "../modules/cloud-storage"
+
+  project_id  = var.project_id
+  bucket_name = "${local.environment}-app-assets-${random_id.bucket_suffix.hex}"
+  location    = var.region
+
+  # Test environment specific settings
+  enable_versioning   = false
+  enable_public_access = false
+
+  backend_service_accounts = [
+    "serviceAccount:${google_service_account.app_service_account.email}"
+  ]
+
+  # CORS rules for web uploads from development
+  cors_rules = [
+    {
+      origin          = ["http://localhost:8000", "http://localhost:3000", "https://*.run.app"]
+      method          = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      response_header = ["Content-Type", "Authorization"]
+      max_age_seconds = 3600
+    }
+  ]
+
+  # Lifecycle rules to keep costs down in test
+  lifecycle_rules = [
+    {
+      condition = {
+        age = 30
+      }
+      action = {
+        type = "Delete"
+      }
+    }
+  ]
+
+  labels = local.labels
 }
 
 # Random suffix for bucket name (must be globally unique)
