@@ -379,9 +379,9 @@ class StorageAPIView(APIView):
 
 
 # For compatibility with existing URL patterns
-storage_upload = StorageAPIView.as_view({'post': 'upload_file'})
-storage_download = StorageAPIView.as_view({'get': 'download_file'})
-storage_delete = StorageAPIView.as_view({'delete': 'delete_file'})
-storage_list = StorageAPIView.as_view({'get': 'list_files'})
-storage_info = StorageAPIView.as_view({'get': 'get_file_info'})
-storage_usage = StorageAPIView.as_view({'get': 'get_storage_usage'})
+storage_upload = StorageAPIView.as_view()
+storage_download = StorageAPIView.as_view()
+storage_delete = StorageAPIView.as_view()
+storage_list = StorageAPIView.as_view()
+storage_info = StorageAPIView.as_view()
+storage_usage = StorageAPIView.as_view()

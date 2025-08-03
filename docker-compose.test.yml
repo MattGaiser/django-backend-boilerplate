@@ -13,7 +13,7 @@ services:
       - DEBUG=false
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py test --keepdb"
+             pytest -v --tb=short --reuse-db"
 
   prefect-server:
     env_file:
