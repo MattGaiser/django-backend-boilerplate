@@ -78,7 +78,7 @@ class TestOrganization(TestCase):
     def test_organization_pii_fields(self):
         """Test that Organization has proper PII fields declared."""
         self.assertTrue(hasattr(Organization, "pii_fields"))
-        self.assertEqual(Organization.pii_fields, [])
+        self.assertEqual(Organization.pii_fields, ["name"])
 
 
 class TestOrganizationMembership(TestCase):

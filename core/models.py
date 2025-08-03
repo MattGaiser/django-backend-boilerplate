@@ -42,6 +42,9 @@ class BaseModel(models.Model):
     All models should inherit from this to ensure consistency across the application.
     """
 
+    # Define PII fields as a class attribute (empty by default for abstract base model)
+    pii_fields = []
+
     class Meta:
         abstract = True
 

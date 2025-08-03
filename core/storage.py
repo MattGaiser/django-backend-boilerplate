@@ -125,11 +125,16 @@ class GCSStorage(Storage):
 
         org_prefix = self._get_organization_prefix(organization_id)
         
-        # If path doesn't start with org prefix, add it
-        if not name.startswith(org_prefix):
+        # Check if path already has an organization prefix (starts with "orgs/")
+        if name.startswith("orgs/"):
+            # If it has an org prefix but it's not the correct one, deny access
+            if not name.startswith(org_prefix):
+                raise PermissionDenied(f"File access denied: {name} not in organization scope")
+        else:
+            # If path doesn't start with org prefix, add it
             name = org_prefix + name.lstrip('/')
             
-        # Double-check that the path is within the organization scope
+        # Final validation that the path is within the organization scope
         if not name.startswith(org_prefix):
             raise PermissionDenied(f"File access denied: {name} not in organization scope")
             
