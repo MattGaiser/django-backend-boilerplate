@@ -9,5 +9,14 @@ structlog>=24.5.0
 django-cors-headers>=4.4.0
 django-allauth>=65.10.0
 PyJWT>=2.8.0
-google-cloud-storage>=2.12.0
 pytest
+
+# Cloud Storage Providers (install based on your cloud provider)
+# For Google Cloud Platform
+google-cloud-storage>=2.12.0
+
+# For AWS (uncomment if using AWS)
+# boto3>=1.34.0
+
+# For Azure (uncomment if using Azure)
+# azure-storage-blob>=12.19.0

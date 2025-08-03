@@ -34,9 +34,7 @@ SECRET_KEY = config(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0,testserver", cast=lambda v: v.split(",")
-)
+ALLOWED_HOSTS = cloud_config.get_allowed_hosts()
 
 
 # Application definition
@@ -102,25 +100,17 @@ WSGI_APPLICATION = "DjangoBoilerplate.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Default to PostgreSQL for containerized environments, fallback to SQLite
-if config("USE_POSTGRES", default=False, cast=bool):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": config("POSTGRES_DB", default="django_db"),
-            "USER": config("POSTGRES_USER", default="django_user"),
-            "PASSWORD": config("POSTGRES_PASSWORD", default="django_password"),
-            "HOST": config("POSTGRES_HOST", default="db"),
-            "PORT": config("POSTGRES_PORT", default="5432"),
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# Use cloud configuration abstraction for database settings
+from core.cloud_config import cloud_config
+
+DATABASES = {
+    "default": cloud_config.database_config
+}
+
+# For SQLite, ensure the path is relative to BASE_DIR
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    if not os.path.isabs(DATABASES["default"]["NAME"]):
+        DATABASES["default"]["NAME"] = BASE_DIR / DATABASES["default"]["NAME"]
 
 
 # Password validation
@@ -268,11 +258,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration for Frontend Integration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React development server
-    "http://127.0.0.1:3000",  # Alternative React development server
-    "http://0.0.0.0:3000",  # Docker-based React development
-]
+CORS_ALLOWED_ORIGINS = cloud_config.get_cors_origins()
 
 # Additional CORS settings for development
 CORS_ALLOW_CREDENTIALS = True
@@ -280,11 +266,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in debug mode
 
 # CSRF Configuration for Token-Based Authentication
 # Since we use token authentication for API endpoints, we can exempt API URLs from CSRF
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-]
+CSRF_TRUSTED_ORIGINS = cloud_config.get_cors_origins()
 
 # Security Headers Configuration
 SECURE_CONTENT_TYPE_NOSNIFF = True  # X-Content-Type-Options: nosniff
@@ -335,54 +317,47 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_ADAPTER = "core.adapters.CustomSocialAccountAdapter"
 ACCOUNT_ADAPTER = "core.adapters.CustomAccountAdapter"
 
-# Social provider configurations - Google OAuth2
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "SCOPE": [
-            "profile",
-            "email",
-        ],
-        "AUTH_PARAMS": {
-            "access_type": "online",
-        },
-        "OAUTH_PKCE_ENABLED": True,
-        "APP": {
-            "client_id": config("GOOGLE_OAUTH2_CLIENT_ID", default=""),
-            "secret": config("GOOGLE_OAUTH2_CLIENT_SECRET", default=""),
-            "key": "",
-        },
-    },
-    "microsoft": {
-        "SCOPE": [
-            "User.Read",
-            "email",
-        ],
-        "APP": {
-            "client_id": config("AZURE_AD_CLIENT_ID", default=""),
-            "secret": config("AZURE_AD_CLIENT_SECRET", default=""),
-            "key": "",
-        },
-    },
-}
+# Social provider configurations
+SOCIALACCOUNT_PROVIDERS = cloud_config.get_oauth_providers()
 
-# Google Cloud Storage Configuration
-USE_GCS_EMULATOR = config("USE_GCS_EMULATOR", default=False, cast=bool)
-GCS_BUCKET_NAME = config("GCS_BUCKET_NAME", default="dev-app-assets")
-GCS_EMULATOR_HOST = config("GCS_EMULATOR_HOST", default="http://fake-gcs-server:9090")
+# Cloud Storage Configuration
+# Use cloud-agnostic configuration
+storage_config = cloud_config.storage_config
 
-# GCS client configuration
-if USE_GCS_EMULATOR:
-    # Configuration for local development with fake-gcs-server
-    GCS_CLIENT_OPTIONS = {
-        "api_endpoint": GCS_EMULATOR_HOST,
-    }
-    # Disable authentication for emulator
-    import os
-    os.environ["STORAGE_EMULATOR_HOST"] = GCS_EMULATOR_HOST.replace("http://", "")
-else:
-    # Production configuration
-    GCS_CLIENT_OPTIONS = {}
+# Cloud provider settings
+CLOUD_STORAGE_PROVIDER = storage_config['provider']
+CLOUD_STORAGE_BUCKET_NAME = storage_config.get('bucket_name', storage_config.get('container_name'))
+CLOUD_STORAGE_USE_ORG_SCOPING = config('CLOUD_STORAGE_USE_ORG_SCOPING', default=True, cast=bool)
+
+# GCS-specific settings (backward compatibility)
+if storage_config['provider'] == 'gcs':
+    USE_GCS_EMULATOR = storage_config.get('use_emulator', False)
+    GCS_BUCKET_NAME = storage_config['bucket_name']
+    GCS_EMULATOR_HOST = storage_config.get('emulator_host', 'http://fake-gcs-server:9090')
+    
+    if USE_GCS_EMULATOR:
+        GCS_CLIENT_OPTIONS = {
+            "api_endpoint": GCS_EMULATOR_HOST,
+        }
+        import os
+        os.environ["STORAGE_EMULATOR_HOST"] = GCS_EMULATOR_HOST.replace("http://", "")
+    else:
+        GCS_CLIENT_OPTIONS = {}
+
+# AWS S3-specific settings
+elif storage_config['provider'] == 's3':
+    AWS_S3_REGION = storage_config.get('region')
+    AWS_ACCESS_KEY_ID = storage_config.get('access_key_id')
+    AWS_SECRET_ACCESS_KEY = storage_config.get('secret_access_key')
+    AWS_S3_ENDPOINT_URL = storage_config.get('endpoint_url')
+
+# Azure-specific settings
+elif storage_config['provider'] == 'azure':
+    AZURE_ACCOUNT_NAME = storage_config.get('account_name')
+    AZURE_ACCOUNT_KEY = storage_config.get('account_key')
+    AZURE_CONNECTION_STRING = storage_config.get('connection_string')
+    AZURE_SAS_TOKEN = storage_config.get('sas_token')
 
 # Storage settings for uploaded files
-DEFAULT_FILE_STORAGE = "core.storage.GCSStorage"
+DEFAULT_FILE_STORAGE = "core.storage.get_default_storage"
 GCS_DEFAULT_ACL = None  # Use bucket default ACL
