@@ -264,9 +264,9 @@ class TestPIIValidationSignalEnhanced(TestCase):
         self.assertIn("email", user_pii_fields)
         self.assertIn("full_name", user_pii_fields)
 
-        # Organization model should have empty PII fields
+        # Organization model should have name as PII field
         org_pii_fields = get_model_pii_fields(Organization)
-        self.assertEqual(org_pii_fields, [])
+        self.assertEqual(org_pii_fields, ["name"])
 
     def test_pii_validation_with_custom_model(self):
         """Test PII validation with a custom model."""
