@@ -15,6 +15,7 @@ pytest-xdist>=3.6.0
 flake8>=7.1.0
 black>=24.0.0
 isort>=5.13.0
+autoflake>=2.3.0
 
 # Development utilities
 ipython>=8.0.0

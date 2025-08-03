@@ -3,8 +3,9 @@ Example Prefect flow that can be run with the Django application.
 This demonstrates the integration between Django and Prefect.
 """
 
-from prefect import flow, task
 import os
+
+from prefect import flow, task
 
 
 @task
@@ -24,7 +25,7 @@ def process_django_data(django_info):
     print("Django Configuration:")
     for key, value in django_info.items():
         print(f"  {key}: {value}")
-    
+
     return f"Processed Django environment: {django_info['django_env']}"
 
 
@@ -32,13 +33,13 @@ def process_django_data(django_info):
 def django_integration_flow():
     """Example flow showing Django and Prefect integration."""
     print("🚀 Starting Django + Prefect integration flow...")
-    
+
     # Get Django configuration
     django_info = get_django_info()
-    
+
     # Process the data
     result = process_django_data(django_info)
-    
+
     print(f"✅ Flow completed: {result}")
     return result
 

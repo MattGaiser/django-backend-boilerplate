@@ -12,11 +12,12 @@ import pytest
 def user_factory():
     """
     Fixture that provides UserFactory for creating test users.
-    
+
     Returns:
         UserFactory: Factory class for creating User instances
     """
     from core.factories import UserFactory
+
     return UserFactory
 
 
@@ -24,11 +25,12 @@ def user_factory():
 def org_factory():
     """
     Fixture that provides OrganizationFactory for creating test organizations.
-    
+
     Returns:
         OrganizationFactory: Factory class for creating Organization instances
     """
     from core.factories import OrganizationFactory
+
     return OrganizationFactory
 
 
@@ -36,11 +38,12 @@ def org_factory():
 def member_factory():
     """
     Fixture that provides OrganizationMembershipFactory for creating test memberships.
-    
+
     Returns:
         OrganizationMembershipFactory: Factory class for creating OrganizationMembership instances
     """
     from core.factories import OrganizationMembershipFactory
+
     return OrganizationMembershipFactory
 
 
@@ -48,11 +51,12 @@ def member_factory():
 def project_factory():
     """
     Fixture that provides ProjectFactory for creating test projects.
-    
+
     Returns:
         ProjectFactory: Factory class for creating Project instances
     """
     from core.factories import ProjectFactory
+
     return ProjectFactory
 
 
@@ -60,7 +64,7 @@ def project_factory():
 def sample_user(user_factory):
     """
     Fixture that creates a sample user for testing.
-    
+
     Returns:
         User: A created User instance with default test data
     """
@@ -71,7 +75,7 @@ def sample_user(user_factory):
 def sample_organization(org_factory):
     """
     Fixture that creates a sample organization for testing.
-    
+
     Returns:
         Organization: A created Organization instance with default test data
     """
@@ -82,7 +86,7 @@ def sample_organization(org_factory):
 def sample_membership(member_factory):
     """
     Fixture that creates a sample organization membership for testing.
-    
+
     Returns:
         OrganizationMembership: A created OrganizationMembership instance
     """
@@ -93,7 +97,7 @@ def sample_membership(member_factory):
 def sample_project(project_factory):
     """
     Fixture that creates a sample project for testing.
-    
+
     Returns:
         Project: A created Project instance with default test data
     """
@@ -104,7 +108,7 @@ def sample_project(project_factory):
 def user_with_organization(user_factory, org_factory, member_factory):
     """
     Fixture that creates a user with an organization membership.
-    
+
     Returns:
         tuple: (User, Organization, OrganizationMembership)
     """
@@ -118,7 +122,7 @@ def user_with_organization(user_factory, org_factory, member_factory):
 def organization_with_project(org_factory, project_factory):
     """
     Fixture that creates an organization with a project.
-    
+
     Returns:
         tuple: (Organization, Project)
     """

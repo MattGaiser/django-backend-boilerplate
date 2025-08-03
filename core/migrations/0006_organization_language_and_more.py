@@ -6,18 +6,34 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0005_project'),
+        ("core", "0005_project"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='organization',
-            name='language',
-            field=models.CharField(blank=True, default='en', help_text='Default language for the organization', max_length=10),
+            model_name="organization",
+            name="language",
+            field=models.CharField(
+                blank=True,
+                default="en",
+                help_text="Default language for the organization",
+                max_length=10,
+            ),
         ),
         migrations.AlterField(
-            model_name='organizationmembership',
-            name='role',
-            field=models.CharField(choices=[('admin', 'Admin'), ('manager', 'Manager'), ('editor', 'Editor'), ('viewer', 'Viewer'), ('super_admin', 'Super Admin')], default='viewer', help_text='Role of the user in the organization', max_length=20),
+            model_name="organizationmembership",
+            name="role",
+            field=models.CharField(
+                choices=[
+                    ("admin", "Admin"),
+                    ("manager", "Manager"),
+                    ("editor", "Editor"),
+                    ("viewer", "Viewer"),
+                    ("super_admin", "Super Admin"),
+                ],
+                default="viewer",
+                help_text="Role of the user in the organization",
+                max_length=20,
+            ),
         ),
     ]

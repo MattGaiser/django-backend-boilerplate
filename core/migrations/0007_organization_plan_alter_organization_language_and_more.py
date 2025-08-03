@@ -6,23 +6,44 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0006_organization_language_and_more'),
+        ("core", "0006_organization_language_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='organization',
-            name='plan',
-            field=models.CharField(choices=[('free', 'Free'), ('standard', 'Standard'), ('enterprise', 'Enterprise')], default='free', help_text='Subscription plan for the organization', max_length=20),
+            model_name="organization",
+            name="plan",
+            field=models.CharField(
+                choices=[
+                    ("free", "Free"),
+                    ("standard", "Standard"),
+                    ("enterprise", "Enterprise"),
+                ],
+                default="free",
+                help_text="Subscription plan for the organization",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='organization',
-            name='language',
-            field=models.CharField(blank=True, choices=[('en', 'English'), ('fr', 'French')], default='en', help_text='Default language for the organization', max_length=10),
+            model_name="organization",
+            name="language",
+            field=models.CharField(
+                blank=True,
+                choices=[("en", "English"), ("fr", "French")],
+                default="en",
+                help_text="Default language for the organization",
+                max_length=10,
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='language',
-            field=models.CharField(blank=True, choices=[('en', 'English'), ('fr', 'French')], default='en', help_text='Preferred language code', max_length=10),
+            model_name="user",
+            name="language",
+            field=models.CharField(
+                blank=True,
+                choices=[("en", "English"), ("fr", "French")],
+                default="en",
+                help_text="Preferred language code",
+                max_length=10,
+            ),
         ),
     ]

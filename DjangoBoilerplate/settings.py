@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,98 +23,102 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # Environment
-DJANGO_ENV = config('DJANGO_ENV', default='development')
+DJANGO_ENV = config("DJANGO_ENV", default="development")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-2%l-xabc_5q%*ch4c+_s4z12)fopd!cl2(h$6t(hj24glyd)nk')
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-2%l-xabc_5q%*ch4c+_s4z12)fopd!cl2(h$6t(hj24glyd)nk",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=lambda v: v.split(','))
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0", cast=lambda v: v.split(",")
+)
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'corsheaders',
-    'django.contrib.sites',  # Required for allauth
-    'rest_framework',
-    'rest_framework.authtoken',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "corsheaders",
+    "django.contrib.sites",  # Required for allauth
+    "rest_framework",
+    "rest_framework.authtoken",
     # Django allauth
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
     # Social providers
-    'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.microsoft',
-    'core.apps.CoreConfig',
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.microsoft",
+    "core.apps.CoreConfig",
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'core.middleware.TokenBasedCSRFExemptMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Required for allauth
-    'core.middleware.CurrentUserMiddleware',
-    'core.logging.StructuredLoggingMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "core.middleware.TokenBasedCSRFExemptMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # Required for allauth
+    "core.middleware.CurrentUserMiddleware",
+    "core.logging.StructuredLoggingMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'DjangoBoilerplate.urls'
+ROOT_URLCONF = "DjangoBoilerplate.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.template.context_processors.i18n',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'DjangoBoilerplate.wsgi.application'
+WSGI_APPLICATION = "DjangoBoilerplate.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Default to PostgreSQL for containerized environments, fallback to SQLite
-if config('USE_POSTGRES', default=False, cast=bool):
+if config("USE_POSTGRES", default=False, cast=bool):
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('POSTGRES_DB', default='django_db'),
-            'USER': config('POSTGRES_USER', default='django_user'),
-            'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
-            'HOST': config('POSTGRES_HOST', default='db'),
-            'PORT': config('POSTGRES_PORT', default='5432'),
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("POSTGRES_DB", default="django_db"),
+            "USER": config("POSTGRES_USER", default="django_user"),
+            "PASSWORD": config("POSTGRES_PASSWORD", default="django_password"),
+            "HOST": config("POSTGRES_HOST", default="db"),
+            "PORT": config("POSTGRES_PORT", default="5432"),
         }
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 
@@ -123,16 +128,16 @@ else:
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -140,18 +145,18 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en'
+LANGUAGE_CODE = "en"
 
 LANGUAGES = [
-    ('en', 'English'),
-    ('fr', 'Français'),
+    ("en", "English"),
+    ("fr", "Français"),
 ]
 
 LOCALE_PATHS = [
-    BASE_DIR / 'locale',
+    BASE_DIR / "locale",
 ]
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 USE_L10N = True
@@ -161,59 +166,60 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User Model
-AUTH_USER_MODEL = 'core.User'
+AUTH_USER_MODEL = "core.User"
 
 # Prefect Configuration
-PREFECT_API_URL = config('PREFECT_API_URL', default='http://prefect-server:4200/api')
-PREFECT_SERVER_HOST = config('PREFECT_SERVER_HOST', default='prefect-server')
-PREFECT_SERVER_PORT = config('PREFECT_SERVER_PORT', default='4200')
+PREFECT_API_URL = config("PREFECT_API_URL", default="http://prefect-server:4200/api")
+PREFECT_SERVER_HOST = config("PREFECT_SERVER_HOST", default="prefect-server")
+PREFECT_SERVER_PORT = config("PREFECT_SERVER_PORT", default="4200")
 
 # Static files configuration for production
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Logging configuration
 # Configure structlog for structured JSON logging
 from core.logging import configure_structlog
+
 configure_structlog()
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'json': {
-            'format': '{message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "format": "{message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'json',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO' if DJANGO_ENV == 'production' else 'DEBUG',
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO" if DJANGO_ENV == "production" else "DEBUG",
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
-        'core': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "core": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }
@@ -221,57 +227,51 @@ LOGGING = {
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     # Authentication
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
-    
     # Permissions
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
-    
     # Renderers - JSONRenderer only in production, add BrowsableAPI for dev
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ] + (['rest_framework.renderers.BrowsableAPIRenderer'] if DEBUG else []),
-    
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ]
+    + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
     # Parsers
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
     ],
-    
     # Pagination
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
-    
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,
     # Versioning
-    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
-    'DEFAULT_VERSION': 'v1',
-    'ALLOWED_VERSIONS': ['v1'],
-    'VERSION_PARAM': 'version',
-    
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1"],
+    "VERSION_PARAM": "version",
     # Throttling - enabled with reasonable defaults
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',      # Anonymous users: 100 requests per hour
-        'user': '1000/hour',     # Authenticated users: 1000 requests per hour
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",  # Anonymous users: 100 requests per hour
+        "user": "1000/hour",  # Authenticated users: 1000 requests per hour
     },
-    
     # Exception handling
-    'EXCEPTION_HANDLER': 'api.v1.exceptions.custom_exception_handler',
+    "EXCEPTION_HANDLER": "api.v1.exceptions.custom_exception_handler",
 }
 
 # CORS Configuration for Frontend Integration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",    # React development server
-    "http://127.0.0.1:3000",   # Alternative React development server
-    "http://0.0.0.0:3000",     # Docker-based React development
+    "http://localhost:3000",  # React development server
+    "http://127.0.0.1:3000",  # Alternative React development server
+    "http://0.0.0.0:3000",  # Docker-based React development
 ]
 
 # Additional CORS settings for development
@@ -282,14 +282,14 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in debug mode
 # Since we use token authentication for API endpoints, we can exempt API URLs from CSRF
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000", 
+    "http://127.0.0.1:3000",
     "http://0.0.0.0:3000",
 ]
 
 # Security Headers Configuration
-SECURE_CONTENT_TYPE_NOSNIFF = True          # X-Content-Type-Options: nosniff
-X_FRAME_OPTIONS = 'DENY'                    # X-Frame-Options: DENY
-SECURE_BROWSER_XSS_FILTER = True           # X-XSS-Protection: 1; mode=block
+SECURE_CONTENT_TYPE_NOSNIFF = True  # X-Content-Type-Options: nosniff
+X_FRAME_OPTIONS = "DENY"  # X-Frame-Options: DENY
+SECURE_BROWSER_XSS_FILTER = True  # X-XSS-Protection: 1; mode=block
 
 # Content Security Policy (basic configuration)
 SECURE_CSP_DEFAULT_SRC = "'self'"
@@ -300,67 +300,67 @@ SECURE_CSP_CONNECT_SRC = "'self'"
 
 # Additional security headers for production
 if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000           # HSTS header for 1 year
+    SECURE_HSTS_SECONDS = 31536000  # HSTS header for 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True               # Redirect HTTP to HTTPS
+    SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
 # Django Sites Framework (required for allauth)
 SITE_ID = 1
 
 # Django Allauth Configuration
 AUTHENTICATION_BACKENDS = [
     # Default Django authentication backend
-    'django.contrib.auth.backends.ModelBackend',
+    "django.contrib.auth.backends.ModelBackend",
     # Allauth authentication backends
-    'allauth.account.auth_backends.AuthenticationBackend',
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 # Allauth general settings
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_RATE_LIMITS = {
-    'login_failed': '5/5m',  # 5 attempts per 5 minutes
+    "login_failed": "5/5m",  # 5 attempts per 5 minutes
 }
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https" if not DEBUG else "http"
 
 # Social account settings
 SOCIALACCOUNT_EMAIL_REQUIRED = True
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Social accounts are pre-verified
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"  # Social accounts are pre-verified
 SOCIALACCOUNT_AUTO_SIGNUP = True
-SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
-ACCOUNT_ADAPTER = 'core.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = "core.adapters.CustomSocialAccountAdapter"
+ACCOUNT_ADAPTER = "core.adapters.CustomAccountAdapter"
 
 # Social provider configurations - Google OAuth2
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
         ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
+        "AUTH_PARAMS": {
+            "access_type": "online",
         },
-        'OAUTH_PKCE_ENABLED': True,
-        'APP': {
-            'client_id': config('GOOGLE_OAUTH2_CLIENT_ID', default=''),
-            'secret': config('GOOGLE_OAUTH2_CLIENT_SECRET', default=''),
-            'key': '',
+        "OAUTH_PKCE_ENABLED": True,
+        "APP": {
+            "client_id": config("GOOGLE_OAUTH2_CLIENT_ID", default=""),
+            "secret": config("GOOGLE_OAUTH2_CLIENT_SECRET", default=""),
+            "key": "",
         },
     },
-    'microsoft': {
-        'SCOPE': [
-            'User.Read',
-            'email',
+    "microsoft": {
+        "SCOPE": [
+            "User.Read",
+            "email",
         ],
-        'APP': {
-            'client_id': config('AZURE_AD_CLIENT_ID', default=''),
-            'secret': config('AZURE_AD_CLIENT_SECRET', default=''),
-            'key': '',
+        "APP": {
+            "client_id": config("AZURE_AD_CLIENT_ID", default=""),
+            "secret": config("AZURE_AD_CLIENT_SECRET", default=""),
+            "key": "",
         },
     },
 }

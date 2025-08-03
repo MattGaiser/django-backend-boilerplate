@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 class PlanChoices(models.TextChoices):
     """Enumeration of subscription plan options."""
+
     FREE = "free", _("Free")
     STANDARD = "standard", _("Standard")
     ENTERPRISE = "enterprise", _("Enterprise")
@@ -12,31 +13,31 @@ class PlanChoices(models.TextChoices):
     def get_plan_limits(cls, plan):
         """
         Get the limits for a specific plan.
-        
+
         Args:
             plan: Plan choice value
-            
+
         Returns:
             dict: Dictionary containing limits for the plan
         """
         limits = {
             cls.FREE: {
-                'max_users': 5,
-                'max_projects': 10,
-                'storage_gb': 1,
-                'api_calls_per_month': 1000,
+                "max_users": 5,
+                "max_projects": 10,
+                "storage_gb": 1,
+                "api_calls_per_month": 1000,
             },
             cls.STANDARD: {
-                'max_users': 25,
-                'max_projects': 100,
-                'storage_gb': 50,
-                'api_calls_per_month': 10000,
+                "max_users": 25,
+                "max_projects": 100,
+                "storage_gb": 50,
+                "api_calls_per_month": 10000,
             },
             cls.ENTERPRISE: {
-                'max_users': None,  # Unlimited
-                'max_projects': None,  # Unlimited
-                'storage_gb': 500,
-                'api_calls_per_month': 100000,
+                "max_users": None,  # Unlimited
+                "max_projects": None,  # Unlimited
+                "storage_gb": 500,
+                "api_calls_per_month": 100000,
             },
         }
         return limits.get(plan, limits[cls.FREE])
@@ -45,10 +46,10 @@ class PlanChoices(models.TextChoices):
     def is_premium_plan(cls, plan):
         """
         Check if a plan is a premium (paid) plan.
-        
+
         Args:
             plan: Plan choice value
-            
+
         Returns:
             bool: True if plan is premium, False otherwise
         """
@@ -57,6 +58,7 @@ class PlanChoices(models.TextChoices):
 
 class LanguageChoices(models.TextChoices):
     """Enumeration of supported language options."""
+
     ENGLISH = "en", _("English")
     FRENCH = "fr", _("French")
 
@@ -64,7 +66,7 @@ class LanguageChoices(models.TextChoices):
     def get_default_language(cls):
         """
         Get the default language.
-        
+
         Returns:
             str: Default language code
         """
@@ -74,10 +76,10 @@ class LanguageChoices(models.TextChoices):
     def get_language_name(cls, language_code):
         """
         Get the display name for a language code.
-        
+
         Args:
             language_code: Language choice value
-            
+
         Returns:
             str: Display name of the language
         """
@@ -88,10 +90,10 @@ class LanguageChoices(models.TextChoices):
     def is_rtl_language(cls, language_code):
         """
         Check if a language is right-to-left.
-        
+
         Args:
             language_code: Language choice value
-            
+
         Returns:
             bool: True if language is RTL, False otherwise
         """
