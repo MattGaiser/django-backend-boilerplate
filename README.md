@@ -112,10 +112,24 @@ docker compose exec django python manage.py seed_demo_data --clean
 
 #### Test Environment
 
-Uses ephemeral volumes and runs automated tests.
+🧪 **Quick Test Commands** (Recommended)
 
 ```bash
-# Run tests (automatically loads .env.test)
+# Fast testing with minimal services
+./run-tests-minimal.sh
+
+# Full test suite with all services  
+./run-tests.sh
+
+# Verbose output for debugging
+./run-tests-minimal.sh --verbose
+```
+
+📚 **Detailed Testing Guide:** See [TESTING_COMMANDS.md](TESTING_COMMANDS.md) for complete documentation.
+
+**Manual Docker Compose Testing:**
+```bash
+# Run tests manually (automatically loads .env.test)
 docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit
 
 # Clean up
