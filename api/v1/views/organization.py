@@ -56,12 +56,18 @@ class OrganizationViewSet(BaseViewSet):
         """
         organization = serializer.save(created_by=self.request.user)
         
+        # Check if user already has a default organization
+        existing_default = OrganizationMembership.objects.filter(
+            user=self.request.user,
+            is_default=True
+        ).exists()
+        
         # Create membership for the creator as admin
         OrganizationMembership.objects.create(
             user=self.request.user,
             organization=organization,
             role=OrgRole.ADMIN,
-            is_default=True,  # First org becomes default
+            is_default=not existing_default,  # Only set as default if no existing default
             created_by=self.request.user
         )
     

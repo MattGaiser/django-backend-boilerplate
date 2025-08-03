@@ -129,26 +129,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         help_text=_("Human-readable status"),
     )
     
-    tags = serializers.SerializerMethodField(
-        help_text=_("Tags associated with this project")
-    )
-    
-    evidence_sources_count = serializers.SerializerMethodField(
-        help_text=_("Number of evidence sources in the project")
-    )
-    
-    evidence_facts_count = serializers.SerializerMethodField(
-        help_text=_("Number of evidence facts in the project")
-    )
-    
-    insights_count = serializers.SerializerMethodField(
-        help_text=_("Number of insights in the project")
-    )
-    
-    recommendations_count = serializers.SerializerMethodField(
-        help_text=_("Number of recommendations in the project")
-    )
-    
     class Meta:
         model = Project
         fields = [
@@ -162,11 +142,6 @@ class ProjectSerializer(serializers.ModelSerializer):
             "end_date",
             "organization",
             "organization_name",
-            "tags",
-            "evidence_sources_count",
-            "evidence_facts_count",
-            "insights_count",
-            "recommendations_count",
             "created_at",
             "updated_at",
             "created_by",
@@ -176,34 +151,10 @@ class ProjectSerializer(serializers.ModelSerializer):
             "organization",
             "organization_name",
             "status_display",
-            "evidence_sources_count",
-            "evidence_facts_count",
-            "insights_count",
-            "recommendations_count",
             "created_at",
             "updated_at",
             "created_by",
         ]
-    
-    def get_tags(self, obj):
-        """Get list of tag names for this object."""
-        return list(obj.get_tag_names())
-    
-    def get_evidence_sources_count(self, obj):
-        """Get count of evidence sources."""
-        return obj.evidence_sources.count()
-    
-    def get_evidence_facts_count(self, obj):
-        """Get count of evidence facts."""
-        return obj.evidence_facts.count()
-    
-    def get_insights_count(self, obj):
-        """Get count of insights."""
-        return obj.evidence_insights.count()
-    
-    def get_recommendations_count(self, obj):
-        """Get count of recommendations."""
-        return obj.recommendations.count()
     
     def validate_name(self, value):
         """Validate name field."""
@@ -226,46 +177,31 @@ class ProjectSerializer(serializers.ModelSerializer):
         return value.strip()
 
 
-class CreateProjectSerializer(ProjectSerializer):
+class CreateProjectSerializer(serializers.ModelSerializer):
     """Serializer for creating new projects."""
     
-    tags = serializers.ListField(
-        child=serializers.CharField(max_length=100),
-        required=False,
-        allow_empty=True,
-        help_text=_("List of tag names to add to the project"),
-    )
-    
-    class Meta(ProjectSerializer.Meta):
-        fields = ProjectSerializer.Meta.fields
-        read_only_fields = [
+    class Meta:
+        model = Project
+        fields = [
             "id",
+            "name",
+            "description",
+            "status",
+            "is_active",
+            "start_date",
+            "end_date",
             "organization",
-            "organization_name",
-            "status_display",
-            "evidence_sources_count",
-            "evidence_facts_count",
-            "insights_count",
-            "recommendations_count",
             "created_at",
             "updated_at",
             "created_by",
         ]
-    
-    def create(self, validated_data):
-        """Create instance with tags."""
-        tags_data = validated_data.pop('tags', [])
-        instance = super().create(validated_data)
-        
-        # Add tags
-        for tag_name in tags_data:
-            instance.add_tag(
-                tag_name,
-                instance.organization,
-                self.context['request'].user
-            )
-        
-        return instance
+        read_only_fields = [
+            "id",
+            "organization",
+            "created_at",
+            "updated_at",
+            "created_by",
+        ]
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):

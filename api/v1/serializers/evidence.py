@@ -91,7 +91,10 @@ class EvidenceSourceSerializer(serializers.ModelSerializer):
     
     def get_tags(self, obj):
         """Get list of tag names for this object."""
-        return list(obj.get_tag_names())
+        try:
+            return list(obj.get_tag_names()) if hasattr(obj, "get_tag_names") else []
+        except:
+            return []
     
     def validate_name(self, value):
         """Validate name field."""
@@ -214,7 +217,10 @@ class EvidenceFactSerializer(serializers.ModelSerializer):
     
     def get_tags(self, obj):
         """Get list of tag names for this object."""
-        return list(obj.get_tag_names())
+        try:
+            return list(obj.get_tag_names()) if hasattr(obj, "get_tag_names") else []
+        except:
+            return []
 
 
 class CreateEvidenceFactSerializer(EvidenceFactSerializer):
@@ -402,7 +408,10 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
     
     def get_tags(self, obj):
         """Get list of tag names for this object."""
-        return list(obj.get_tag_names())
+        try:
+            return list(obj.get_tag_names()) if hasattr(obj, "get_tag_names") else []
+        except:
+            return []
     
     def get_related_facts_count(self, obj):
         """Get count of related facts."""
@@ -523,7 +532,10 @@ class RecommendationSerializer(serializers.ModelSerializer):
     
     def get_tags(self, obj):
         """Get list of tag names for this object."""
-        return list(obj.get_tag_names())
+        try:
+            return list(obj.get_tag_names()) if hasattr(obj, "get_tag_names") else []
+        except:
+            return []
     
     def get_related_insights_count(self, obj):
         """Get count of related insights."""

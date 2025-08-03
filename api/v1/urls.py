@@ -156,12 +156,12 @@ urlpatterns = [
     path("storage/usage/", storage_usage, name="storage-usage"),
     
     # New storage endpoints (matching Supabase /storage/v1/ pattern)
-    path("storage/evidence-files/", upload_evidence_file, name="storage-evidence-upload"),
+    path("storage/evidence-files/upload/", upload_evidence_file, name="storage-evidence-upload"),
+    path("storage/evidence-files/list/", list_evidence_files, name="storage-evidence-list"),
+    path("storage/evidence-files/usage/", get_storage_usage, name="storage-evidence-usage"),
     path("storage/evidence-files/<path:file_path>/", download_evidence_file, name="storage-evidence-download"),
     path("storage/evidence-files/<path:file_path>/delete/", delete_evidence_file, name="storage-evidence-delete"),
-    path("storage/evidence-files/list/", list_evidence_files, name="storage-evidence-list"),
     path("storage/evidence-files/<path:file_path>/info/", get_file_info, name="storage-evidence-info"),
-    path("storage/evidence-files/usage/", get_storage_usage, name="storage-evidence-usage"),
     path("storage/signed-upload-url/", create_signed_upload_url, name="storage-signed-upload"),
     path("storage/signed-download-url/", create_signed_download_url, name="storage-signed-download"),
     
