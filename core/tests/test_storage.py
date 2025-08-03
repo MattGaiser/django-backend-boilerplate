@@ -32,7 +32,11 @@ class TestGCSStorage:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
             
+            # Create storage with explicit production settings
             storage = GCSStorage(bucket_name="test", client_options={})
+            # Override the settings for this test to simulate production
+            storage.use_emulator = False
+            storage.client_options = {}
             
             # Access client property to trigger initialization
             client = storage.client
@@ -67,6 +71,9 @@ class TestGCSStorage:
             mock_client.bucket.return_value = mock_bucket
             
             storage = GCSStorage(bucket_name="test-bucket")
+            # Override the settings for this test to simulate production
+            storage.use_emulator = False
+            storage.client_options = {}
             
             # Access bucket property to trigger initialization
             bucket = storage.bucket
