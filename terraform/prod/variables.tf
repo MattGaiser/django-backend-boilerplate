@@ -21,6 +21,30 @@ variable "database_password" {
   sensitive   = true
 }
 
+variable "google_oauth2_client_id" {
+  description = "Google OAuth2 Client ID for social authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "google_oauth2_client_secret" {
+  description = "Google OAuth2 Client Secret for social authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "azure_ad_client_id" {
+  description = "Azure AD (Microsoft) Client ID for social authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "azure_ad_client_secret" {
+  description = "Azure AD (Microsoft) Client Secret for social authentication"
+  type        = string
+  sensitive   = true
+}
+
 variable "custom_domains" {
   description = "Custom domains for the production deployment"
   type        = list(string)

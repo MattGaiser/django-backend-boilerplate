@@ -21,10 +21,18 @@ The following secrets must be configured in your GitHub repository settings:
 ### Test Environment Secrets
 - **`DJANGO_SECRET_KEY_TEST`**: Django secret key for test environment
 - **`DB_PASSWORD_TEST`**: Database password for test environment
+- **`GOOGLE_OAUTH2_CLIENT_ID_TEST`**: Google OAuth2 Client ID for test environment
+- **`GOOGLE_OAUTH2_CLIENT_SECRET_TEST`**: Google OAuth2 Client Secret for test environment
+- **`AZURE_AD_CLIENT_ID_TEST`**: Azure AD (Microsoft) Client ID for test environment
+- **`AZURE_AD_CLIENT_SECRET_TEST`**: Azure AD (Microsoft) Client Secret for test environment
 
 ### Production Environment Secrets  
 - **`DJANGO_SECRET_KEY_PROD`**: Django secret key for production environment
 - **`DB_PASSWORD_PROD`**: Database password for production environment
+- **`GOOGLE_OAUTH2_CLIENT_ID_PROD`**: Google OAuth2 Client ID for production environment
+- **`GOOGLE_OAUTH2_CLIENT_SECRET_PROD`**: Google OAuth2 Client Secret for production environment
+- **`AZURE_AD_CLIENT_ID_PROD`**: Azure AD (Microsoft) Client ID for production environment
+- **`AZURE_AD_CLIENT_SECRET_PROD`**: Azure AD (Microsoft) Client Secret for production environment
 
 ## How to Create GCP Service Account
 
@@ -151,3 +159,82 @@ gcloud sql operations list --instance={instance-name}
 # Build logs in Cloud Build (if enabled)
 gcloud builds list
 ```
+
+## OAuth Provider Setup
+
+### Google OAuth2 Setup
+
+1. **Create OAuth2 Application**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Navigate to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth 2.0 Client IDs"
+   - Select "Web application" as application type
+   - Add authorized redirect URIs:
+     - Test: `https://{test-env}-django-backend-*.run.app/accounts/google/login/callback/`
+     - Production: `https://{prod-env}-django-backend-*.run.app/accounts/google/login/callback/`
+   - Note the Client ID and Client Secret
+
+2. **Configure GitHub Secrets**:
+   ```
+   GOOGLE_OAUTH2_CLIENT_ID_TEST=your-test-client-id.apps.googleusercontent.com
+   GOOGLE_OAUTH2_CLIENT_SECRET_TEST=GOCSPX-your-test-client-secret
+   GOOGLE_OAUTH2_CLIENT_ID_PROD=your-prod-client-id.apps.googleusercontent.com
+   GOOGLE_OAUTH2_CLIENT_SECRET_PROD=GOCSPX-your-prod-client-secret
+   ```
+
+### Azure AD (Microsoft) OAuth Setup
+
+1. **Create Azure AD Application**:
+   - Go to [Azure Portal](https://portal.azure.com/)
+   - Navigate to "Azure Active Directory" > "App registrations"
+   - Click "New registration"
+   - Set redirect URIs:
+     - Test: `https://{test-env}-django-backend-*.run.app/accounts/microsoft/login/callback/`
+     - Production: `https://{prod-env}-django-backend-*.run.app/accounts/microsoft/login/callback/`
+   - Generate a client secret in "Certificates & secrets"
+   - Note the Application (client) ID and Client Secret
+
+2. **Configure GitHub Secrets**:
+   ```
+   AZURE_AD_CLIENT_ID_TEST=your-test-azure-application-id
+   AZURE_AD_CLIENT_SECRET_TEST=your-test-azure-client-secret
+   AZURE_AD_CLIENT_ID_PROD=your-prod-azure-application-id
+   AZURE_AD_CLIENT_SECRET_PROD=your-prod-azure-client-secret
+   ```
+
+### Google Workspace Integration (Optional)
+
+For organizations using Google Workspace, additional configuration may be needed:
+
+1. **Admin SDK API Access**:
+   - Enable Google Admin SDK API in Google Cloud Console
+   - Create a service account with domain-wide delegation
+   - Add scopes in Google Admin Console
+
+2. **Django Settings** (if implementing Workspace features):
+   ```python
+   # Additional settings for Google Workspace
+   GOOGLE_WORKSPACE_DOMAIN = "your-domain.com"
+   GOOGLE_WORKSPACE_ADMIN_EMAIL = "admin@your-domain.com"
+   ```
+
+**Note**: Google Workspace integration is not currently implemented in the base configuration but can be added for advanced use cases.
+
+## Security Considerations
+
+### OAuth Security Best Practices
+
+1. **Use environment-specific OAuth applications**
+2. **Rotate client secrets regularly**
+3. **Limit redirect URIs to your actual domains**
+4. **Monitor OAuth usage through provider dashboards**
+5. **Use HTTPS-only redirect URIs**
+
+### Secret Management
+
+All OAuth credentials are managed through:
+- **GitHub Secrets** for CI/CD pipeline
+- **GCP Secret Manager** for runtime environment
+- **Environment-specific isolation** between test and production
+
+The Terraform infrastructure automatically creates Secret Manager secrets and injects them into Cloud Run services, ensuring secure credential handling throughout the deployment pipeline.

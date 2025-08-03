@@ -1,9 +1,13 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.5"
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0"
+      version = "~> 6.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
     }
   }
 
@@ -87,6 +91,22 @@ module "secrets" {
       value  = var.database_password
       labels = {}
     }
+    google-oauth2-client-id = {
+      value  = var.google_oauth2_client_id
+      labels = {}
+    }
+    google-oauth2-client-secret = {
+      value  = var.google_oauth2_client_secret
+      labels = {}
+    }
+    azure-ad-client-id = {
+      value  = var.azure_ad_client_id
+      labels = {}
+    }
+    azure-ad-client-secret = {
+      value  = var.azure_ad_client_secret
+      labels = {}
+    }
   }
 
   cloud_run_service_accounts = [
@@ -147,6 +167,22 @@ module "django_backend" {
     }
     POSTGRES_PASSWORD = {
       secret_name = module.secrets.secret_ids["database-password"]
+      version     = "latest"
+    }
+    GOOGLE_OAUTH2_CLIENT_ID = {
+      secret_name = module.secrets.secret_ids["google-oauth2-client-id"]
+      version     = "latest"
+    }
+    GOOGLE_OAUTH2_CLIENT_SECRET = {
+      secret_name = module.secrets.secret_ids["google-oauth2-client-secret"]
+      version     = "latest"
+    }
+    AZURE_AD_CLIENT_ID = {
+      secret_name = module.secrets.secret_ids["azure-ad-client-id"]
+      version     = "latest"
+    }
+    AZURE_AD_CLIENT_SECRET = {
+      secret_name = module.secrets.secret_ids["azure-ad-client-secret"]
       version     = "latest"
     }
   }

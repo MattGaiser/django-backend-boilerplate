@@ -17,7 +17,7 @@ variable "region" {
 variable "database_version" {
   description = "PostgreSQL version"
   type        = string
-  default     = "POSTGRES_15"
+  default     = "POSTGRES_16"
 }
 
 variable "tier" {
