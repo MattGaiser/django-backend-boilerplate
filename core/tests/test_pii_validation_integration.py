@@ -42,3 +42,27 @@ class TestPIIValidationIntegration(TestCase):
         self.assertTrue(hasattr(User, 'pii_fields'))
         expected_pii = {'email', 'full_name', 'last_login_ip'}
         self.assertEqual(set(User.pii_fields), expected_pii)
+        
+    def test_integration_with_organization_model(self):
+        """Test that Organization model has proper PII declaration."""
+        from core.models import Organization
+        
+        # Organization model should declare 'name' as PII
+        self.assertTrue(hasattr(Organization, 'pii_fields'))
+        self.assertIn('name', Organization.pii_fields)
+        
+    def test_integration_with_project_model(self):
+        """Test that Project model has proper PII declaration."""
+        from core.models import Project
+        
+        # Project model should declare 'name' as PII
+        self.assertTrue(hasattr(Project, 'pii_fields'))
+        self.assertIn('name', Project.pii_fields)
+        
+    def test_integration_with_tag_model(self):
+        """Test that Tag model has proper PII declaration."""
+        from core.models import Tag
+        
+        # Tag model should declare 'name' as PII
+        self.assertTrue(hasattr(Tag, 'pii_fields'))
+        self.assertIn('name', Tag.pii_fields)

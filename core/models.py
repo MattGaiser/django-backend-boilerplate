@@ -123,7 +123,7 @@ class Organization(BaseModel):
     """
     
     # Define PII fields as a class attribute
-    pii_fields = []
+    pii_fields = ['name']
     
     class Meta:
         verbose_name = _("Organization")
@@ -632,7 +632,7 @@ class Tag(BaseModel):
     """
     
     # Define PII fields as a class attribute
-    pii_fields = []
+    pii_fields = ['name']
     
     class Meta:
         verbose_name = _("Tag")
@@ -706,7 +706,7 @@ class Project(BaseModel, TaggableMixin):
     """
     
     # Define PII fields as a class attribute
-    pii_fields = []
+    pii_fields = ['name']
     
     class Meta:
         verbose_name = _("Project")

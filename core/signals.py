@@ -132,7 +132,7 @@ def validate_pii_fields(sender, **kwargs):
         return
     
     # Skip built-in Django models and migrations
-    if sender._meta.app_label in ['admin', 'auth', 'contenttypes', 'sessions']:
+    if sender._meta.app_label in ['admin', 'auth', 'contenttypes', 'sessions', 'sites', 'account', 'socialaccount']:
         return
     
     # Skip Django's internal models
