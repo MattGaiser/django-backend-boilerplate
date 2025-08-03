@@ -8,6 +8,7 @@ An enterprise-ready Django backend boilerplate with comprehensive multi-tenant a
 - **Custom User Model**: Email-based authentication with UUID primary keys
 - **Multi-Tenancy**: Organization-based data isolation with role-based permissions  
 - **RBAC System**: Admin, Manager, and Viewer roles with organization scoping
+- **SSO Integration**: Google OAuth2 and Azure AD via django-allauth
 - **Audit Trails**: Automatic tracking of created_by, updated_by, and timestamps
 - **Soft Delete**: Safe data removal with recovery capabilities
 - **PII Compliance**: Built-in PII field tracking and data protection
@@ -143,6 +144,196 @@ Optimized for production with multiple Gunicorn workers and minimal Prefect UI.
 # Start services (automatically loads .env.production)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
+
+## SSO Integration
+
+This boilerplate includes comprehensive SSO (Single Sign-On) integration via django-allauth, supporting both social authentication and email-based login.
+
+### Features
+
+- ✅ **Email-based authentication** as default (username login disabled)
+- ✅ **Google OAuth2** and **Azure AD** social providers pre-configured
+- ✅ **Django Admin integration** for managing social applications
+- ✅ **Custom adapters** for organization scoping during login
+- ✅ **Environment-based credentials** for secure configuration
+- ✅ **Development-friendly** with mock credentials support
+
+### Authentication Endpoints
+
+All authentication endpoints are available under `/accounts/`:
+
+- **Login**: `/accounts/login/`
+- **Signup**: `/accounts/signup/`
+- **Logout**: `/accounts/logout/`
+- **Password Reset**: `/accounts/password/reset/`
+- **Social Login**: `/accounts/google/login/` and `/accounts/microsoft/login/`
+
+### Google OAuth2 Setup
+
+#### 1. Create Google OAuth2 Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable the Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Configure OAuth consent screen with your domain
+6. Add authorized redirect URIs:
+   - `http://localhost:8001/accounts/google/login/callback/` (development)
+   - `https://yourdomain.com/accounts/google/login/callback/` (production)
+
+#### 2. Configure Environment Variables
+
+Add your Google OAuth2 credentials to your environment files:
+
+**Development (`.env.dev`):**
+```bash
+# Google OAuth2 - Replace with actual credentials
+GOOGLE_OAUTH2_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-actual-client-secret
+```
+
+**Production (`.env.production`):**
+```bash
+# Google OAuth2 - Production credentials
+GOOGLE_OAUTH2_CLIENT_ID=your-production-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-production-client-secret
+```
+
+#### 3. Create Social Application in Django Admin
+
+1. Start your Django server
+2. Go to Django Admin: `http://localhost:8001/admin/`
+3. Navigate to **Social Applications** → **Add**
+4. Configure:
+   - **Provider**: Google
+   - **Name**: Google OAuth2
+   - **Client ID**: Your Google client ID
+   - **Secret Key**: Your Google client secret
+   - **Sites**: Select your site (usually `example.com`)
+
+### Azure AD Setup
+
+#### 1. Register Application in Azure Portal
+
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Navigate to **Azure Active Directory** → **App registrations**
+3. Click **New registration**
+4. Configure:
+   - **Name**: Your app name
+   - **Supported account types**: Choose appropriate option
+   - **Redirect URI**: Web → `http://localhost:8001/accounts/microsoft/login/callback/`
+
+#### 2. Configure App Registration
+
+1. Note the **Application (client) ID**
+2. Go to **Certificates & secrets** → **New client secret**
+3. Note the **client secret value** (copy immediately!)
+4. Go to **API permissions** → **Add a permission**
+5. Add Microsoft Graph permissions: `User.Read`, `email`, `profile`
+
+#### 3. Configure Environment Variables
+
+**Development (`.env.dev`):**
+```bash
+# Azure AD / Microsoft - Replace with actual credentials
+AZURE_AD_CLIENT_ID=your-azure-ad-application-client-id
+AZURE_AD_CLIENT_SECRET=your-azure-ad-client-secret
+```
+
+**Production (`.env.production`):**
+```bash
+# Azure AD / Microsoft - Production credentials
+AZURE_AD_CLIENT_ID=your-production-azure-ad-client-id
+AZURE_AD_CLIENT_SECRET=your-production-azure-ad-client-secret
+```
+
+#### 4. Create Social Application in Django Admin
+
+1. Navigate to **Social Applications** → **Add**
+2. Configure:
+   - **Provider**: Microsoft
+   - **Name**: Azure AD
+   - **Client ID**: Your Azure AD client ID
+   - **Secret Key**: Your Azure AD client secret
+   - **Sites**: Select your site
+
+### Local Development with Mock Credentials
+
+For local development, the boilerplate includes mock/placeholder credentials that won't work for actual authentication but allow the application to start without errors:
+
+```bash
+# These are in .env.dev and .env.test by default
+GOOGLE_OAUTH2_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-google-client-secret
+
+AZURE_AD_CLIENT_ID=your-azure-ad-application-client-id
+AZURE_AD_CLIENT_SECRET=your-azure-ad-client-secret
+```
+
+### Testing SSO Integration
+
+The boilerplate includes comprehensive tests for SSO functionality:
+
+```bash
+# Run all SSO tests
+docker compose exec django python -m pytest core/tests/test_sso_integration.py -v
+
+# Run specific SSO test categories
+docker compose exec django python -m pytest core/tests/test_sso_integration.py::TestAllauthConfiguration -v
+docker compose exec django python -m pytest core/tests/test_sso_integration.py::TestCustomAdapters -v
+```
+
+### Customizing SSO Behavior
+
+#### Custom Social Account Adapter
+
+The boilerplate includes a custom `CustomSocialAccountAdapter` in `core/adapters.py` that provides:
+
+- **Email-based user matching**: Automatically connects social accounts to existing users with matching emails
+- **Custom user data extraction**: Pulls name, locale, and other data from social providers
+- **Organization scoping placeholder**: Ready for implementing organization assignment logic
+- **Error handling**: User-friendly error messages for authentication failures
+
+#### Organization Assignment
+
+The current implementation includes a placeholder for organization assignment during SSO login. You can customize the `_handle_organization_assignment` method in `core/adapters.py` to:
+
+- Assign users to organizations based on email domain
+- Check for pending invitations
+- Create default personal organizations
+- Implement custom business rules
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **OAuth callback errors**: Ensure redirect URIs in your provider match exactly
+2. **Missing client ID/secret**: Check environment variables are loaded correctly
+3. **Site framework errors**: Ensure `SITE_ID = 1` is set and Site exists in database
+4. **Email verification issues**: Check email backend configuration for production
+
+#### Debug Social Authentication
+
+Enable verbose logging for social authentication:
+
+```python
+# In settings.py
+LOGGING['loggers']['allauth'] = {
+    'handlers': ['console'],
+    'level': 'DEBUG',
+}
+```
+
+#### Test Social App Configuration
+
+```bash
+# Check if social apps are configured correctly
+docker compose exec django python manage.py shell
+>>> from allauth.socialaccount.models import SocialApp
+>>> SocialApp.objects.all()
+>>> # Should show your configured social applications
+```
+
 
 ## Architecture
 

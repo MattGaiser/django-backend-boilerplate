@@ -21,5 +21,6 @@ from core.demo_views import LoggingDemoView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('api.v1.urls')),
+    path('accounts/', include('allauth.urls')),
     path('demo/logging/', LoggingDemoView.as_view(), name='logging-demo'),
 ]
