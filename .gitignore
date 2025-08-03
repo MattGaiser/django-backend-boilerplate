@@ -54,3 +54,10 @@ Dockerfile.test
 
 # Version file (generated at build time)
 version.json
+
+# Terraform files
+terraform/**/.terraform/
+terraform/**/.terraform.lock.hcl
+terraform/**/terraform.tfstate*
+terraform/**/terraform.tfplan
+terraform/**/.terraform.tfstate.lock.info

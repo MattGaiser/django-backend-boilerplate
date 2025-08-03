@@ -1,0 +1,33 @@
+FROM prefecthq/prefect:3-latest
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Set work directory
+WORKDIR /app
+
+# Install additional Python dependencies if needed
+# COPY requirements-prefect.txt /app/
+# RUN pip install --no-cache-dir -r requirements-prefect.txt
+
+# Copy Prefect flows and configuration
+COPY flows/ /app/flows/
+COPY example_flow.py /app/
+
+# Create a non-root user
+RUN groupadd -r prefect && useradd -r -g prefect -m -d /home/prefect prefect && \
+    chown -R prefect:prefect /app && \
+    chown -R prefect:prefect /home/prefect
+
+USER prefect
+
+# Expose Prefect server port
+EXPOSE 4200
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:4200/api/health || exit 1
+
+# Start Prefect server
+CMD ["prefect", "server", "start", "--host", "0.0.0.0", "--port", "4200"]

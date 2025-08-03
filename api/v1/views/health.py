@@ -1,20 +1,36 @@
+"""
+Health check API view for monitoring service status.
+
+Provides endpoints for health monitoring with database connectivity checks.
+"""
+
 import structlog
 from django.conf import settings
 from django.db import connections
-from django.http import JsonResponse
-from django.views import View
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 logger = structlog.get_logger(__name__)
 
 
-class HealthCheckView(View):
+class HealthCheckView(APIView):
     """
-    Health check endpoint for Cloud Run health checks
+    Health check endpoint for Cloud Run health checks and monitoring.
+
+    This endpoint is used by load balancers and monitoring systems
+    to verify service health and database connectivity.
     """
+
+    permission_classes = [AllowAny]  # Allow health checks without authentication
 
     def get(self, request):
         """
-        Perform health checks and return status
+        Perform health checks and return status.
+
+        Returns:
+            Response: JSON response with health status and check results
         """
         health_status = {
             "status": "healthy",
@@ -45,6 +61,10 @@ class HealthCheckView(View):
             logger.error("Health check: Django check failed", error=str(e))
 
         # Return appropriate HTTP status code
-        status_code = 200 if health_status["status"] == "healthy" else 503
+        status_code = (
+            status.HTTP_200_OK
+            if health_status["status"] == "healthy"
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        )
 
-        return JsonResponse(health_status, status=status_code)
+        return Response(health_status, status=status_code)
