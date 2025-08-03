@@ -148,7 +148,7 @@ module "django_backend" {
   }
 
   cloud_sql_connections = module.database.instance_connection_name
-  health_check_path     = "/health/"
+  health_check_path     = "/api/v1/health/"
 
   labels = local.labels
 }
