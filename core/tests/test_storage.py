@@ -25,53 +25,54 @@ class TestGCSStorage:
         self.bucket_name = "test-bucket"
         self.storage = GCSStorage(bucket_name=self.bucket_name)
 
-    @patch('core.storage.storage')
-    def test_client_initialization_production(self, mock_storage_module):
+    def test_client_initialization_production(self):
         """Test GCS client initialization for production."""
-        mock_client = MagicMock()
-        mock_storage_module.Client.return_value = mock_client
-        
-        with patch('google.cloud.storage'):
+        # Mock the storage module directly
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.return_value = mock_client
+            
             storage = GCSStorage(bucket_name="test", client_options={})
             
             # Access client property to trigger initialization
             client = storage.client
             
             assert client == mock_client
+            mock_client_class.assert_called_once_with()
 
-    @patch('google.cloud.storage')
-    def test_client_initialization_emulator(self, mock_storage_module):
+    def test_client_initialization_emulator(self):
         """Test GCS client initialization for emulator."""
-        mock_client = MagicMock()
-        mock_storage_module.Client.create_anonymous_client.return_value = mock_client
-        
-        storage = GCSStorage(
-            bucket_name="test",
-            client_options={'api_endpoint': 'http://localhost:9090'}
-        )
-        storage.use_emulator = True
-        
-        # Access client property to trigger initialization
-        client = storage.client
-        
-        assert client == mock_client
-        mock_storage_module.Client.create_anonymous_client.assert_called_once()
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.create_anonymous_client.return_value = mock_client
+            
+            storage = GCSStorage(
+                bucket_name="test",
+                client_options={'api_endpoint': 'http://localhost:9090'}
+            )
+            storage.use_emulator = True
+            
+            # Access client property to trigger initialization
+            client = storage.client
+            
+            assert client == mock_client
+            mock_client_class.create_anonymous_client.assert_called_once()
 
-    @patch('google.cloud.storage')
-    def test_bucket_initialization(self, mock_storage_module):
+    def test_bucket_initialization(self):
         """Test GCS bucket initialization."""
-        mock_client = MagicMock()
-        mock_bucket = MagicMock()
-        mock_storage_module.Client.return_value = mock_client
-        mock_client.bucket.return_value = mock_bucket
-        
-        storage = GCSStorage(bucket_name="test-bucket")
-        
-        # Access bucket property to trigger initialization
-        bucket = storage.bucket
-        
-        assert bucket == mock_bucket
-        mock_client.bucket.assert_called_once_with("test-bucket")
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_bucket = MagicMock()
+            mock_client_class.return_value = mock_client
+            mock_client.bucket.return_value = mock_bucket
+            
+            storage = GCSStorage(bucket_name="test-bucket")
+            
+            # Access bucket property to trigger initialization
+            bucket = storage.bucket
+            
+            assert bucket == mock_bucket
+            mock_client.bucket.assert_called_once_with("test-bucket")
 
     def test_organization_prefix_generation(self):
         """Test organization prefix generation."""
