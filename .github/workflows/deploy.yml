@@ -1,0 +1,231 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches:
+      - main      # Deploy to production
+      - test      # Deploy to test environment
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - prod
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+
+jobs:
+  determine-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      django_secret_key: ${{ steps.set-env.outputs.django_secret_key }}
+      database_password: ${{ steps.set-env.outputs.database_password }}
+    steps:
+      - name: Determine deployment environment
+        id: set-env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/test" ]]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Unsupported branch for deployment"
+            exit 1
+          fi
+          
+          # Set environment-specific secrets
+          if [[ "$(cat $GITHUB_OUTPUT | grep environment | cut -d= -f2)" == "prod" ]]; then
+            echo "django_secret_key=${{ secrets.DJANGO_SECRET_KEY_PROD }}" >> $GITHUB_OUTPUT
+            echo "database_password=${{ secrets.DB_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "django_secret_key=${{ secrets.DJANGO_SECRET_KEY_TEST }}" >> $GITHUB_OUTPUT
+            echo "database_password=${{ secrets.DB_PASSWORD_TEST }}" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    needs: determine-environment
+    runs-on: ubuntu-latest
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure Docker to use gcloud as a credential helper
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      - name: Initialize Terraform
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        run: terraform init
+
+      - name: Plan Terraform
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        run: |
+          terraform plan \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="region=${{ env.REGION }}" \
+            -var="django_secret_key=${{ needs.determine-environment.outputs.django_secret_key }}" \
+            -var="database_password=${{ needs.determine-environment.outputs.database_password }}"
+
+      - name: Apply Terraform (Infrastructure)
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        run: |
+          terraform apply -auto-approve \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="region=${{ env.REGION }}" \
+            -var="django_secret_key=${{ needs.determine-environment.outputs.django_secret_key }}" \
+            -var="database_password=${{ needs.determine-environment.outputs.database_password }}"
+
+      - name: Get Terraform outputs
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        id: terraform-outputs
+        run: |
+          echo "artifact_registry_url=$(terraform output -raw artifact_registry_url)" >> $GITHUB_OUTPUT
+          echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_OUTPUT
+
+      - name: Build and push Django Docker image
+        run: |
+          IMAGE_URL="${{ steps.terraform-outputs.outputs.artifact_registry_url }}/django-backend:${{ github.sha }}"
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
+          
+          # Also tag as latest
+          LATEST_URL="${{ steps.terraform-outputs.outputs.artifact_registry_url }}/django-backend:latest"
+          docker tag $IMAGE_URL $LATEST_URL
+          docker push $LATEST_URL
+
+      - name: Build and push Prefect Docker image
+        run: |
+          IMAGE_URL="${{ steps.terraform-outputs.outputs.artifact_registry_url }}/prefect-server:${{ github.sha }}"
+          docker build -f Dockerfile.prefect -t $IMAGE_URL .
+          docker push $IMAGE_URL
+          
+          # Also tag as latest
+          LATEST_URL="${{ steps.terraform-outputs.outputs.artifact_registry_url }}/prefect-server:latest"
+          docker tag $IMAGE_URL $LATEST_URL
+          docker push $LATEST_URL
+
+      - name: Update Cloud Run services
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        run: |
+          # Re-apply Terraform to deploy the new images
+          terraform apply -auto-approve \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="region=${{ env.REGION }}" \
+            -var="django_secret_key=${{ needs.determine-environment.outputs.django_secret_key }}" \
+            -var="database_password=${{ needs.determine-environment.outputs.database_password }}"
+
+      - name: Get deployment URLs
+        working-directory: terraform/${{ needs.determine-environment.outputs.environment }}
+        id: deployment-urls
+        run: |
+          echo "django_backend_url=$(terraform output -raw django_backend_url)" >> $GITHUB_OUTPUT
+          echo "prefect_server_url=$(terraform output -raw prefect_server_url)" >> $GITHUB_OUTPUT
+          echo "frontend_bucket_name=$(terraform output -raw frontend_bucket_name)" >> $GITHUB_OUTPUT
+
+      - name: Build React frontend (example)
+        env:
+          REACT_APP_API_URL: ${{ steps.deployment-urls.outputs.django_backend_url }}
+          VITE_BACKEND_URL: ${{ steps.deployment-urls.outputs.django_backend_url }}
+        run: |
+          # This is a placeholder for React frontend build
+          # Replace with your actual frontend build process
+          echo "Building React frontend with backend URL: $REACT_APP_API_URL"
+          
+          # Example frontend build commands:
+          # cd frontend/
+          # npm ci
+          # npm run build
+          
+          # For demonstration, create a simple index.html
+          mkdir -p build
+          cat > build/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Django Backend Boilerplate</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body>
+              <h1>Django Backend Boilerplate</h1>
+              <p>Environment: ${{ needs.determine-environment.outputs.environment }}</p>
+              <p>Backend API: <a href="${{ steps.deployment-urls.outputs.django_backend_url }}" target="_blank">${{ steps.deployment-urls.outputs.django_backend_url }}</a></p>
+              <p>Prefect Server: <a href="${{ steps.deployment-urls.outputs.prefect_server_url }}" target="_blank">${{ steps.deployment-urls.outputs.prefect_server_url }}</a></p>
+              <script>
+                console.log('Backend URL:', '${{ steps.deployment-urls.outputs.django_backend_url }}');
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy frontend to Cloud Storage
+        run: |
+          # Upload built frontend to Cloud Storage bucket
+          gsutil -m rsync -r -d build/ gs://${{ steps.deployment-urls.outputs.frontend_bucket_name }}/
+
+      - name: Run Django migrations
+        run: |
+          # Deploy a temporary Cloud Run job to run migrations
+          # This is a more robust approach than running migrations in the main container
+          
+          cat > migrate.yaml << EOF
+          apiVersion: run.googleapis.com/v1
+          kind: Job
+          metadata:
+            name: django-migrate-${{ github.run_number }}
+          spec:
+            spec:
+              template:
+                spec:
+                  template:
+                    spec:
+                      containers:
+                      - image: ${{ steps.terraform-outputs.outputs.artifact_registry_url }}/django-backend:latest
+                        command: ["python", "manage.py", "migrate"]
+                        env:
+                        - name: DJANGO_ENV
+                          value: "${{ needs.determine-environment.outputs.environment == 'prod' && 'production' || 'test' }}"
+                        - name: USE_POSTGRES
+                          value: "true"
+                      restartPolicy: Never
+              backoffLimit: 3
+          EOF
+          
+          echo "Migration job created (placeholder)"
+          # In a real deployment, you would deploy this job and wait for completion
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Django Backend**: ${{ steps.deployment-urls.outputs.django_backend_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prefect Server**: ${{ steps.deployment-urls.outputs.prefect_server_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend Bucket**: ${{ steps.deployment-urls.outputs.frontend_bucket_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
