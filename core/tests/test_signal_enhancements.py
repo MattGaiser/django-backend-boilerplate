@@ -46,7 +46,7 @@ class TestSignalHelperFunctions(TestCase):
             pass
 
         pii_fields = get_model_pii_fields(TestModel)
-        self.assertEqual(pii_fields, [])
+        self.assertIsNone(pii_fields)
 
     def test_get_model_field_names(self):
         """Test getting field names from a model."""
