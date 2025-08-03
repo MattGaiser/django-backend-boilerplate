@@ -1,0 +1,9 @@
+# Additional requirements for AWS deployment
+# Install with: pip install -r requirements-aws.txt
+
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Optional: For enhanced AWS integrations
+# aws-lambda-powertools>=2.30.0  # For Lambda functions
+# django-storages[s3]>=1.14.0    # Alternative Django S3 backend

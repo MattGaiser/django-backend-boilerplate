@@ -1,0 +1,9 @@
+# Additional requirements for Azure deployment
+# Install with: pip install -r requirements-azure.txt
+
+azure-storage-blob>=12.19.0
+azure-identity>=1.15.0
+
+# Optional: For enhanced Azure integrations
+# azure-keyvault-secrets>=4.7.0   # For Key Vault integration
+# azure-storage-file-datalake>=12.14.0  # For Data Lake storage
