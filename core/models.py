@@ -759,3 +759,481 @@ class Project(BaseModel, TaggableMixin):
     def __str__(self):
         """Return string representation of the project."""
         return f"{self.name} ({self.organization.name})"
+
+
+class EvidenceSource(BaseModel, TaggableMixin):
+    """
+    Evidence source model for storing uploaded files and content.
+    
+    Represents documents, videos, audio files, images, or text content
+    that serve as evidence sources for analysis.
+    """
+    
+    # Define PII fields
+    pii_fields = ["name", "content", "notes"]
+    
+    class Meta:
+        verbose_name = _("Evidence Source")
+        verbose_name_plural = _("Evidence Sources")
+        indexes = [
+            models.Index(fields=["organization", "project", "type"]),
+            models.Index(fields=["processing_status"]),
+            models.Index(fields=["upload_date"]),
+        ]
+    
+    class TypeChoices(models.TextChoices):
+        """Enumeration of evidence source types."""
+        DOCUMENT = "document", _("Document")
+        VIDEO = "video", _("Video")
+        AUDIO = "audio", _("Audio")
+        TEXT = "text", _("Text")
+        IMAGE = "image", _("Image")
+    
+    class ProcessingStatusChoices(models.TextChoices):
+        """Enumeration of processing status options."""
+        PENDING = "pending", _("Pending")
+        PROCESSING = "processing", _("Processing")
+        COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Failed")
+    
+    organization = models.ForeignKey(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="evidence_sources",
+        help_text=_("Organization this evidence source belongs to"),
+    )
+    
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="evidence_sources",
+        help_text=_("Project this evidence source belongs to"),
+    )
+    
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_("Name"),
+        help_text=_("Name of the evidence source"),
+    )
+    
+    type = models.CharField(
+        max_length=20,
+        choices=TypeChoices.choices,
+        verbose_name=_("Type"),
+        help_text=_("Type of evidence source"),
+    )
+    
+    file_path = models.CharField(
+        max_length=500,
+        null=True,
+        blank=True,
+        verbose_name=_("File Path"),
+        help_text=_("Path to the uploaded file in storage"),
+    )
+    
+    content = models.TextField(
+        blank=True,
+        verbose_name=_("Content"),
+        help_text=_("Text content of the evidence source"),
+    )
+    
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("File Size"),
+        help_text=_("Size of the uploaded file in bytes"),
+    )
+    
+    mime_type = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_("MIME Type"),
+        help_text=_("MIME type of the uploaded file"),
+    )
+    
+    processing_status = models.CharField(
+        max_length=20,
+        choices=ProcessingStatusChoices.choices,
+        default=ProcessingStatusChoices.PENDING,
+        verbose_name=_("Processing Status"),
+        help_text=_("Current processing status"),
+    )
+    
+    upload_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Upload Date"),
+        help_text=_("Date and time when the file was uploaded"),
+    )
+    
+    summary = models.TextField(
+        blank=True,
+        verbose_name=_("Summary"),
+        help_text=_("AI-generated summary of the content"),
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("User notes about the evidence source"),
+    )
+    
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Additional metadata including tags"),
+    )
+    
+    def __str__(self):
+        """Return string representation of the evidence source."""
+        return f"{self.name} ({self.project.name})"
+
+
+class EvidenceFact(BaseModel, TaggableMixin):
+    """
+    Evidence fact model for storing extracted facts from evidence sources.
+    
+    Represents individual facts or insights extracted from evidence sources
+    through AI processing or manual input.
+    """
+    
+    # Define PII fields
+    pii_fields = ["content", "title", "notes", "participant"]
+    
+    class Meta:
+        verbose_name = _("Evidence Fact")
+        verbose_name_plural = _("Evidence Facts")
+        indexes = [
+            models.Index(fields=["organization", "project", "source"]),
+            models.Index(fields=["extracted_at"]),
+            models.Index(fields=["confidence_score"]),
+            models.Index(fields=["sentiment"]),
+        ]
+    
+    class SentimentChoices(models.TextChoices):
+        """Enumeration of sentiment options."""
+        POSITIVE = "positive", _("Positive")
+        NEUTRAL = "neutral", _("Neutral")
+        NEGATIVE = "negative", _("Negative")
+    
+    organization = models.ForeignKey(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="evidence_facts",
+        help_text=_("Organization this evidence fact belongs to"),
+    )
+    
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="evidence_facts",
+        help_text=_("Project this evidence fact belongs to"),
+    )
+    
+    source = models.ForeignKey(
+        "core.EvidenceSource",
+        on_delete=models.CASCADE,
+        related_name="evidence_facts",
+        help_text=_("Evidence source this fact was extracted from"),
+    )
+    
+    content = models.TextField(
+        verbose_name=_("Content"),
+        help_text=_("The main content of the evidence fact"),
+    )
+    
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Title"),
+        help_text=_("Title or heading for the evidence fact"),
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("Additional notes about the evidence fact"),
+    )
+    
+    confidence_score = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Confidence Score"),
+        help_text=_("AI confidence score for this fact (0.0 to 1.0)"),
+    )
+    
+    participant = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Participant"),
+        help_text=_("Participant or speaker associated with this fact"),
+    )
+    
+    sentiment = models.CharField(
+        max_length=20,
+        choices=SentimentChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Sentiment"),
+        help_text=_("Sentiment analysis of the fact"),
+    )
+    
+    extracted_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Extracted At"),
+        help_text=_("Date and time when this fact was extracted"),
+    )
+    
+    embedding = models.TextField(
+        blank=True,
+        verbose_name=_("Embedding"),
+        help_text=_("Vector embedding for similarity search"),
+    )
+    
+    tags_list = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags"),
+        help_text=_("List of tag names for this fact"),
+    )
+    
+    def __str__(self):
+        """Return string representation of the evidence fact."""
+        title = self.title or self.content[:50]
+        return f"{title} ({self.project.name})"
+
+
+class EvidenceChunk(BaseModel):
+    """
+    Evidence chunk model for storing processed chunks from evidence sources.
+    
+    Represents smaller pieces of content created during document processing
+    for better AI analysis and similarity search.
+    """
+    
+    # Define PII fields
+    pii_fields = ["chunk_text"]
+    
+    class Meta:
+        verbose_name = _("Evidence Chunk")
+        verbose_name_plural = _("Evidence Chunks")
+        indexes = [
+            models.Index(fields=["organization", "project", "source"]),
+            models.Index(fields=["chunk_index"]),
+        ]
+    
+    organization = models.ForeignKey(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="evidence_chunks",
+        help_text=_("Organization this evidence chunk belongs to"),
+    )
+    
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="evidence_chunks",
+        help_text=_("Project this evidence chunk belongs to"),
+    )
+    
+    source = models.ForeignKey(
+        "core.EvidenceSource",
+        on_delete=models.CASCADE,
+        related_name="evidence_chunks",
+        help_text=_("Evidence source this chunk was created from"),
+    )
+    
+    chunk_index = models.PositiveIntegerField(
+        verbose_name=_("Chunk Index"),
+        help_text=_("Order index of this chunk within the source"),
+    )
+    
+    chunk_text = models.TextField(
+        verbose_name=_("Chunk Text"),
+        help_text=_("Text content of this chunk"),
+    )
+    
+    embedding = models.TextField(
+        blank=True,
+        verbose_name=_("Embedding"),
+        help_text=_("Vector embedding for similarity search"),
+    )
+    
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Metadata"),
+        help_text=_("Additional metadata for the chunk"),
+    )
+    
+    def __str__(self):
+        """Return string representation of the evidence chunk."""
+        return f"Chunk {self.chunk_index} of {self.source.name}"
+
+
+class EvidenceInsight(BaseModel, TaggableMixin):
+    """
+    Evidence insight model for storing AI-generated insights.
+    
+    Represents higher-level insights and patterns identified from evidence facts.
+    """
+    
+    # Define PII fields
+    pii_fields = ["title", "description"]
+    
+    class Meta:
+        verbose_name = _("Evidence Insight")
+        verbose_name_plural = _("Evidence Insights")
+        indexes = [
+            models.Index(fields=["organization", "project"]),
+            models.Index(fields=["priority"]),
+        ]
+    
+    class PriorityChoices(models.TextChoices):
+        """Enumeration of priority levels."""
+        LOW = "low", _("Low")
+        MEDIUM = "medium", _("Medium")
+        HIGH = "high", _("High")
+    
+    organization = models.ForeignKey(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="evidence_insights",
+        help_text=_("Organization this evidence insight belongs to"),
+    )
+    
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="evidence_insights",
+        help_text=_("Project this evidence insight belongs to"),
+    )
+    
+    title = models.CharField(
+        max_length=255,
+        verbose_name=_("Title"),
+        help_text=_("Title of the evidence insight"),
+    )
+    
+    description = models.TextField(
+        verbose_name=_("Description"),
+        help_text=_("Detailed description of the insight"),
+    )
+    
+    priority = models.CharField(
+        max_length=20,
+        choices=PriorityChoices.choices,
+        default=PriorityChoices.MEDIUM,
+        verbose_name=_("Priority"),
+        help_text=_("Priority level of this insight"),
+    )
+    
+    related_facts = models.ManyToManyField(
+        "core.EvidenceFact",
+        blank=True,
+        related_name="insights",
+        verbose_name=_("Related Facts"),
+        help_text=_("Evidence facts that support this insight"),
+    )
+    
+    tags_list = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags"),
+        help_text=_("List of tag names for this insight"),
+    )
+    
+    def __str__(self):
+        """Return string representation of the evidence insight."""
+        return f"{self.title} ({self.project.name})"
+
+
+class Recommendation(BaseModel, TaggableMixin):
+    """
+    Recommendation model for storing AI-generated recommendations.
+    
+    Represents actionable recommendations based on evidence insights.
+    """
+    
+    # Define PII fields
+    pii_fields = ["title", "description"]
+    
+    class Meta:
+        verbose_name = _("Recommendation")
+        verbose_name_plural = _("Recommendations")
+        indexes = [
+            models.Index(fields=["organization", "project"]),
+            models.Index(fields=["effort", "impact"]),
+        ]
+    
+    class EffortChoices(models.TextChoices):
+        """Enumeration of effort levels."""
+        LOW = "low", _("Low")
+        MEDIUM = "medium", _("Medium")
+        HIGH = "high", _("High")
+    
+    class ImpactChoices(models.TextChoices):
+        """Enumeration of impact levels."""
+        LOW = "low", _("Low")
+        MEDIUM = "medium", _("Medium")
+        HIGH = "high", _("High")
+    
+    organization = models.ForeignKey(
+        "core.Organization",
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+        help_text=_("Organization this recommendation belongs to"),
+    )
+    
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+        help_text=_("Project this recommendation belongs to"),
+    )
+    
+    title = models.CharField(
+        max_length=255,
+        verbose_name=_("Title"),
+        help_text=_("Title of the recommendation"),
+    )
+    
+    description = models.TextField(
+        verbose_name=_("Description"),
+        help_text=_("Detailed description of the recommendation"),
+    )
+    
+    effort = models.CharField(
+        max_length=20,
+        choices=EffortChoices.choices,
+        default=EffortChoices.MEDIUM,
+        verbose_name=_("Effort"),
+        help_text=_("Estimated effort required to implement"),
+    )
+    
+    impact = models.CharField(
+        max_length=20,
+        choices=ImpactChoices.choices,
+        default=ImpactChoices.MEDIUM,
+        verbose_name=_("Impact"),
+        help_text=_("Expected impact of this recommendation"),
+    )
+    
+    related_insights = models.ManyToManyField(
+        "core.EvidenceInsight",
+        blank=True,
+        related_name="recommendations",
+        verbose_name=_("Related Insights"),
+        help_text=_("Evidence insights that support this recommendation"),
+    )
+    
+    tags_list = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags"),
+        help_text=_("List of tag names for this recommendation"),
+    )
+    
+    def __str__(self):
+        """Return string representation of the recommendation."""
+        return f"{self.title} ({self.project.name})"
