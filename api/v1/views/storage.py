@@ -17,7 +17,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import HttpResponse, Http404
 from django.utils.translation import gettext_lazy as _
 
-from api.v1.views.base import BaseAPIView
+from rest_framework.views import APIView
 from api.v1.serializers.storage import (
     FileUploadSerializer,
     FileInfoSerializer,
@@ -30,7 +30,7 @@ from constants.roles import OrgRole
 logger = logging.getLogger(__name__)
 
 
-class StorageAPIView(BaseAPIView):
+class StorageAPIView(APIView):
     """
     API view for file storage operations with RBAC enforcement.
     
@@ -40,6 +40,28 @@ class StorageAPIView(BaseAPIView):
     
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+
+    def get_organization(self):
+        """
+        Get the organization context for this request.
+        
+        Returns:
+            Organization: The organization for this request context
+        """
+        # Try to get organization from URL parameters first
+        org_id = self.kwargs.get("organization_id") or self.kwargs.get("org_id")
+        if org_id:
+            try:
+                from core.models import Organization
+                return Organization.objects.get(id=org_id)
+            except Organization.DoesNotExist:
+                return None
+
+        # Fall back to user's default organization
+        if hasattr(self.request, "user") and self.request.user.is_authenticated:
+            return self.request.user.get_default_organization()
+
+        return None
 
     def get_storage_service(self) -> StorageService:
         """
