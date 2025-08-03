@@ -2,7 +2,18 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Organization, OrganizationMembership, Tag, User
+from .models import (
+    Organization, 
+    OrganizationMembership, 
+    Tag, 
+    User, 
+    Project,
+    EvidenceSource,
+    EvidenceFact,
+    EvidenceChunk,
+    EvidenceInsight,
+    Recommendation,
+)
 
 
 @admin.register(User)
@@ -213,3 +224,297 @@ class TagAdmin(admin.ModelAdmin):
         if obj:  # Editing an existing object
             readonly_fields.extend(["id", "content_type", "object_id"])
         return readonly_fields
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    """Admin configuration for the Project model."""
+
+    list_display = [
+        "title",
+        "organization",
+        "status", 
+        "start_date",
+        "end_date",
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "status",
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "description",
+        "organization__name",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("title", "description", "organization")
+        }),
+        (_("Dates"), {
+            "fields": ("start_date", "end_date", "status")
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+
+
+@admin.register(EvidenceSource)
+class EvidenceSourceAdmin(admin.ModelAdmin):
+    """Admin configuration for the EvidenceSource model."""
+
+    list_display = [
+        "title",
+        "organization",
+        "type",
+        "processing_status", 
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "type",
+        "processing_status",
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "notes",
+        "organization__name",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("title", "notes", "organization", "type")
+        }),
+        (_("File Information"), {
+            "fields": ("file_path", "file_size", "mime_type", "processing_status")
+        }),
+        (_("AI Processing"), {
+            "fields": ("summary", "metadata")
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+    filter_horizontal = ["projects"]
+
+
+@admin.register(EvidenceFact)
+class EvidenceFactAdmin(admin.ModelAdmin):
+    """Admin configuration for the EvidenceFact model."""
+
+    list_display = [
+        "title",
+        "organization",
+        "source",
+        "confidence_score",
+        "sentiment", 
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "sentiment",
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "notes",
+        "participant",
+        "organization__name",
+        "source__title",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("title", "notes", "organization", "source")
+        }),
+        (_("Analysis"), {
+            "fields": ("confidence_score", "participant", "sentiment")
+        }),
+        (_("Technical"), {
+            "fields": ("embedding", "tags_list")
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+    filter_horizontal = ["projects"]
+
+
+@admin.register(EvidenceChunk)
+class EvidenceChunkAdmin(admin.ModelAdmin):
+    """Admin configuration for the EvidenceChunk model."""
+
+    list_display = [
+        "chunk_index",
+        "source",
+        "organization",
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "chunk_text",
+        "organization__name",
+        "source__title",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("chunk_index", "chunk_text", "organization", "source")
+        }),
+        (_("Technical"), {
+            "fields": ("embedding", "metadata")
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+    filter_horizontal = ["projects"]
+
+
+@admin.register(EvidenceInsight)
+class EvidenceInsightAdmin(admin.ModelAdmin):
+    """Admin configuration for the EvidenceInsight model."""
+
+    list_display = [
+        "title",
+        "organization",
+        "priority",
+        "evidence_score",
+        "sentiment",
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "priority",
+        "sentiment",
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "notes",
+        "organization__name",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+        "evidence_level",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("title", "notes", "organization", "priority")
+        }),
+        (_("Evidence"), {
+            "fields": ("evidence_score", "evidence_level", "sentiment")
+        }),
+        (_("Technical"), {
+            "fields": ("tags_list",)
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+    filter_horizontal = ["projects", "supporting_evidence"]
+
+
+@admin.register(Recommendation)
+class RecommendationAdmin(admin.ModelAdmin):
+    """Admin configuration for the Recommendation model."""
+
+    list_display = [
+        "title",
+        "organization",
+        "type",
+        "status",
+        "effort",
+        "impact",
+        "evidence_score",
+        "created_at",
+        "created_by",
+    ]
+    list_filter = [
+        "type",
+        "status",
+        "effort",
+        "impact",
+        "organization",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "notes",
+        "organization__name",
+    ]
+    readonly_fields = [
+        "id",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+        "evidence_level",
+    ]
+    fieldsets = (
+        (_("Basic Information"), {
+            "fields": ("title", "notes", "organization", "type", "status")
+        }),
+        (_("Impact Assessment"), {
+            "fields": ("effort", "impact", "evidence_score", "evidence_level")
+        }),
+        (_("Technical"), {
+            "fields": ("tags_list",)
+        }),
+        (_("Audit Trail"), {
+            "fields": ("created_at", "updated_at", "created_by", "updated_by"),
+            "classes": ("collapse",)
+        }),
+    )
+    filter_horizontal = ["projects", "supporting_evidence"]

@@ -688,49 +688,33 @@ class Tag(BaseModel):
 
 class Project(BaseModel, TaggableMixin):
     """
-    Sample model that inherits from BaseModel for demonstration purposes.
+    Project model for managing research projects within an organization.
 
-    Represents a project within an organization that can have multiple collaborators.
-    This model demonstrates the factory pattern and BaseModel inheritance.
+    Represents a project that contains sources, observations, insights, 
+    and recommendations for analysis and decision making.
     """
 
     # Define PII fields as a class attribute
-    pii_fields = ["name"]
+    pii_fields = ["title", "description"]
 
     class Meta:
         verbose_name = _("Project")
         verbose_name_plural = _("Projects")
         indexes = [
-            models.Index(fields=["name", "is_active"]),
+            models.Index(fields=["organization", "title"]),
             models.Index(fields=["status"]),
+            models.Index(fields=["start_date", "end_date"]),
         ]
 
     class StatusChoices(models.TextChoices):
         """Enumeration of project status options."""
 
-        PLANNING = "planning", _("Planning")
-        ACTIVE = "active", _("Active")
-        ON_HOLD = "on_hold", _("On Hold")
+        NOT_STARTED = "not_started", _("Not Started")
+        IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
-        CANCELLED = "cancelled", _("Cancelled")
+        ON_HOLD = "on_hold", _("On Hold")
 
-    name = models.CharField(max_length=255, help_text=_("Name of the project"))
-
-    description = models.TextField(
-        blank=True, help_text=_("Detailed description of the project")
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=StatusChoices.choices,
-        default=StatusChoices.PLANNING,
-        help_text=_("Current status of the project"),
-    )
-
-    is_active = models.BooleanField(
-        default=True, help_text=_("Designates whether this project is active")
-    )
-
+    # Organization field (required for multi-tenancy)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -738,11 +722,39 @@ class Project(BaseModel, TaggableMixin):
         help_text=_("Organization this project belongs to"),
     )
 
-    start_date = models.DateField(
-        null=True, blank=True, help_text=_("Project start date")
+    title = models.CharField(
+        max_length=255, 
+        verbose_name=_("Title"),
+        help_text=_("Short text title of the project")
     )
 
-    end_date = models.DateField(null=True, blank=True, help_text=_("Project end date"))
+    description = models.TextField(
+        blank=True, 
+        verbose_name=_("Description"),
+        help_text=_("Longer text description (hypothesis or goal)")
+    )
+
+    start_date = models.DateField(
+        null=True, 
+        blank=True, 
+        verbose_name=_("Start Date"),
+        help_text=_("Project start date")
+    )
+
+    end_date = models.DateField(
+        null=True, 
+        blank=True, 
+        verbose_name=_("End Date"),
+        help_text=_("Project end date")
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.NOT_STARTED,
+        verbose_name=_("Status"),
+        help_text=_("Current status of the project"),
+    )
 
     def clean(self):
         """Validate that end_date is after start_date."""
@@ -758,7 +770,7 @@ class Project(BaseModel, TaggableMixin):
 
     def __str__(self):
         """Return string representation of the project."""
-        return f"{self.name} ({self.organization.name})"
+        return f"{self.title} ({self.organization.name})"
 
 
 class EvidenceSource(BaseModel, TaggableMixin):
@@ -766,11 +778,11 @@ class EvidenceSource(BaseModel, TaggableMixin):
     Evidence source model for storing uploaded files and content.
     
     Represents documents, videos, audio files, images, or text content
-    that serve as evidence sources for analysis.
+    that serve as sources for analysis. Maps to "Sources" in specification.
     """
     
-    # Define PII fields
-    pii_fields = ["name", "content", "notes"]
+    # Define PII fields as a class attribute
+    pii_fields = ["title", "notes"]
     
     class Meta:
         verbose_name = _("Evidence Source")
@@ -778,11 +790,15 @@ class EvidenceSource(BaseModel, TaggableMixin):
         indexes = [
             models.Index(fields=["organization", "project", "type"]),
             models.Index(fields=["processing_status"]),
-            models.Index(fields=["upload_date"]),
+            models.Index(fields=["created_at"]),
         ]
     
     class TypeChoices(models.TextChoices):
         """Enumeration of evidence source types."""
+        SUPPORT_TICKETS = "support_tickets", _("Support Tickets")
+        INTERVIEW = "interview", _("Interview")
+        SURVEY = "survey", _("Survey")
+        ANALYTICS = "analytics", _("Analytics")
         DOCUMENT = "document", _("Document")
         VIDEO = "video", _("Video")
         AUDIO = "audio", _("Audio")
@@ -796,6 +812,7 @@ class EvidenceSource(BaseModel, TaggableMixin):
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
     
+    # Organization field (required for multi-tenancy and RBAC)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -803,38 +820,41 @@ class EvidenceSource(BaseModel, TaggableMixin):
         help_text=_("Organization this evidence source belongs to"),
     )
     
-    project = models.ForeignKey(
+    # Project can be multiple - use M2M instead of single FK for flexibility
+    projects = models.ManyToManyField(
         "core.Project",
-        on_delete=models.CASCADE,
+        blank=True,
         related_name="evidence_sources",
-        help_text=_("Project this evidence source belongs to"),
+        verbose_name=_("Projects"),
+        help_text=_("Projects this evidence source belongs to (optional)"),
     )
     
-    name = models.CharField(
+    title = models.CharField(
         max_length=255,
-        verbose_name=_("Name"),
-        help_text=_("Name of the evidence source"),
+        verbose_name=_("Title"),
+        help_text=_("Smaller text area, always visible"),
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("Detailed description, expandable by user"),
     )
     
     type = models.CharField(
         max_length=20,
         choices=TypeChoices.choices,
         verbose_name=_("Type"),
-        help_text=_("Type of evidence source"),
+        help_text=_("Open text (e.g., Support Tickets, Interview, Survey, Analytics)"),
     )
     
+    # Technical file-related fields for uploaded content
     file_path = models.CharField(
         max_length=500,
         null=True,
         blank=True,
         verbose_name=_("File Path"),
         help_text=_("Path to the uploaded file in storage"),
-    )
-    
-    content = models.TextField(
-        blank=True,
-        verbose_name=_("Content"),
-        help_text=_("Text content of the evidence source"),
     )
     
     file_size = models.PositiveIntegerField(
@@ -859,34 +879,23 @@ class EvidenceSource(BaseModel, TaggableMixin):
         help_text=_("Current processing status"),
     )
     
-    upload_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("Upload Date"),
-        help_text=_("Date and time when the file was uploaded"),
-    )
-    
+    # Legacy fields for backward compatibility
     summary = models.TextField(
         blank=True,
         verbose_name=_("Summary"),
         help_text=_("AI-generated summary of the content"),
     )
     
-    notes = models.TextField(
-        blank=True,
-        verbose_name=_("Notes"),
-        help_text=_("User notes about the evidence source"),
-    )
-    
     metadata = models.JSONField(
         default=dict,
         blank=True,
         verbose_name=_("Metadata"),
-        help_text=_("Additional metadata including tags"),
+        help_text=_("Additional metadata including legacy tags"),
     )
     
     def __str__(self):
         """Return string representation of the evidence source."""
-        return f"{self.name} ({self.project.name})"
+        return f"{self.title} ({self.organization.name})"
 
 
 class EvidenceFact(BaseModel, TaggableMixin):
@@ -894,18 +903,18 @@ class EvidenceFact(BaseModel, TaggableMixin):
     Evidence fact model for storing extracted facts from evidence sources.
     
     Represents individual facts or insights extracted from evidence sources
-    through AI processing or manual input.
+    through AI processing or manual input. Maps to "Observations" in specification.
     """
     
-    # Define PII fields
-    pii_fields = ["content", "title", "notes", "participant"]
+    # Define PII fields as a class attribute
+    pii_fields = ["title", "notes", "participant"]
     
     class Meta:
         verbose_name = _("Evidence Fact")
         verbose_name_plural = _("Evidence Facts")
         indexes = [
-            models.Index(fields=["organization", "project", "source"]),
-            models.Index(fields=["extracted_at"]),
+            models.Index(fields=["organization", "source"]),
+            models.Index(fields=["created_at"]),
             models.Index(fields=["confidence_score"]),
             models.Index(fields=["sentiment"]),
         ]
@@ -916,6 +925,7 @@ class EvidenceFact(BaseModel, TaggableMixin):
         NEUTRAL = "neutral", _("Neutral")
         NEGATIVE = "negative", _("Negative")
     
+    # Organization field (required for multi-tenancy and RBAC)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -923,23 +933,22 @@ class EvidenceFact(BaseModel, TaggableMixin):
         help_text=_("Organization this evidence fact belongs to"),
     )
     
-    project = models.ForeignKey(
+    # Projects can be multiple (optional)
+    projects = models.ManyToManyField(
         "core.Project",
-        on_delete=models.CASCADE,
+        blank=True,
         related_name="evidence_facts",
-        help_text=_("Project this evidence fact belongs to"),
+        verbose_name=_("Projects"),
+        help_text=_("Projects this observation belongs to (optional, can be multiple)"),
     )
     
+    # Source is required (linked to 1 and only 1 source)
     source = models.ForeignKey(
         "core.EvidenceSource",
         on_delete=models.CASCADE,
         related_name="evidence_facts",
-        help_text=_("Evidence source this fact was extracted from"),
-    )
-    
-    content = models.TextField(
-        verbose_name=_("Content"),
-        help_text=_("The main content of the evidence fact"),
+        verbose_name=_("Source"),
+        help_text=_("Evidence source this fact was extracted from (required)"),
     )
     
     title = models.CharField(
@@ -952,7 +961,7 @@ class EvidenceFact(BaseModel, TaggableMixin):
     notes = models.TextField(
         blank=True,
         verbose_name=_("Notes"),
-        help_text=_("Additional notes about the evidence fact"),
+        help_text=_("Additional context; expandable"),
     )
     
     confidence_score = models.FloatField(
@@ -966,7 +975,7 @@ class EvidenceFact(BaseModel, TaggableMixin):
         max_length=255,
         blank=True,
         verbose_name=_("Participant"),
-        help_text=_("Participant or speaker associated with this fact"),
+        help_text=_("Participant or speaker associated with this fact (optional)"),
     )
     
     sentiment = models.CharField(
@@ -975,32 +984,28 @@ class EvidenceFact(BaseModel, TaggableMixin):
         null=True,
         blank=True,
         verbose_name=_("Sentiment"),
-        help_text=_("Sentiment analysis of the fact"),
+        help_text=_("Sentiment analysis of the fact (optional)"),
     )
     
-    extracted_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("Extracted At"),
-        help_text=_("Date and time when this fact was extracted"),
-    )
-    
+    # Technical embedding field for AI processing
     embedding = models.TextField(
         blank=True,
         verbose_name=_("Embedding"),
         help_text=_("Vector embedding for similarity search"),
     )
     
+    # Legacy field for backward compatibility
     tags_list = models.JSONField(
         default=list,
         blank=True,
-        verbose_name=_("Tags"),
-        help_text=_("List of tag names for this fact"),
+        verbose_name=_("Tags List"),
+        help_text=_("Legacy list of tag names for this fact"),
     )
     
     def __str__(self):
         """Return string representation of the evidence fact."""
-        title = self.title or self.content[:50]
-        return f"{title} ({self.project.name})"
+        title = self.title or str(self.id)[:8]
+        return f"{title} ({self.source.title})"
 
 
 class EvidenceChunk(BaseModel):
@@ -1011,17 +1016,18 @@ class EvidenceChunk(BaseModel):
     for better AI analysis and similarity search.
     """
     
-    # Define PII fields
+    # Define PII fields as a class attribute
     pii_fields = ["chunk_text"]
     
     class Meta:
         verbose_name = _("Evidence Chunk")
         verbose_name_plural = _("Evidence Chunks")
         indexes = [
-            models.Index(fields=["organization", "project", "source"]),
+            models.Index(fields=["organization", "source"]),
             models.Index(fields=["chunk_index"]),
         ]
     
+    # Organization field (required for multi-tenancy and RBAC)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -1029,11 +1035,13 @@ class EvidenceChunk(BaseModel):
         help_text=_("Organization this evidence chunk belongs to"),
     )
     
-    project = models.ForeignKey(
+    # Projects can be multiple (inferred from source)
+    projects = models.ManyToManyField(
         "core.Project",
-        on_delete=models.CASCADE,
+        blank=True,
         related_name="evidence_chunks",
-        help_text=_("Project this evidence chunk belongs to"),
+        verbose_name=_("Projects"),
+        help_text=_("Projects this evidence chunk belongs to (inferred from source)"),
     )
     
     source = models.ForeignKey(
@@ -1068,7 +1076,7 @@ class EvidenceChunk(BaseModel):
     
     def __str__(self):
         """Return string representation of the evidence chunk."""
-        return f"Chunk {self.chunk_index} of {self.source.name}"
+        return f"Chunk {self.chunk_index} of {self.source.title}"
 
 
 class EvidenceInsight(BaseModel, TaggableMixin):
@@ -1076,17 +1084,19 @@ class EvidenceInsight(BaseModel, TaggableMixin):
     Evidence insight model for storing AI-generated insights.
     
     Represents higher-level insights and patterns identified from evidence facts.
+    Maps to "Insights" in specification.
     """
     
-    # Define PII fields
-    pii_fields = ["title", "description"]
+    # Define PII fields as a class attribute
+    pii_fields = ["title", "notes"]
     
     class Meta:
         verbose_name = _("Evidence Insight")
         verbose_name_plural = _("Evidence Insights")
         indexes = [
-            models.Index(fields=["organization", "project"]),
+            models.Index(fields=["organization", "evidence_score"]),
             models.Index(fields=["priority"]),
+            models.Index(fields=["sentiment"]),
         ]
     
     class PriorityChoices(models.TextChoices):
@@ -1095,6 +1105,13 @@ class EvidenceInsight(BaseModel, TaggableMixin):
         MEDIUM = "medium", _("Medium")
         HIGH = "high", _("High")
     
+    class SentimentChoices(models.TextChoices):
+        """Enumeration of sentiment options."""
+        POSITIVE = "positive", _("Positive")
+        NEUTRAL = "neutral", _("Neutral")
+        NEGATIVE = "negative", _("Negative")
+    
+    # Organization field (required for multi-tenancy and RBAC)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -1102,11 +1119,13 @@ class EvidenceInsight(BaseModel, TaggableMixin):
         help_text=_("Organization this evidence insight belongs to"),
     )
     
-    project = models.ForeignKey(
+    # Projects can be multiple (optional)
+    projects = models.ManyToManyField(
         "core.Project",
-        on_delete=models.CASCADE,
+        blank=True,
         related_name="evidence_insights",
-        help_text=_("Project this evidence insight belongs to"),
+        verbose_name=_("Projects"),
+        help_text=_("Projects this insight belongs to (optional, can be multiple)"),
     )
     
     title = models.CharField(
@@ -1115,9 +1134,10 @@ class EvidenceInsight(BaseModel, TaggableMixin):
         help_text=_("Title of the evidence insight"),
     )
     
-    description = models.TextField(
-        verbose_name=_("Description"),
-        help_text=_("Detailed description of the insight"),
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("Additional context; expandable"),
     )
     
     priority = models.CharField(
@@ -1128,24 +1148,62 @@ class EvidenceInsight(BaseModel, TaggableMixin):
         help_text=_("Priority level of this insight"),
     )
     
-    related_facts = models.ManyToManyField(
+    # Supporting Evidence: Observations tied to this insight
+    supporting_evidence = models.ManyToManyField(
         "core.EvidenceFact",
         blank=True,
         related_name="insights",
-        verbose_name=_("Related Facts"),
-        help_text=_("Evidence facts that support this insight"),
+        verbose_name=_("Supporting Evidence"),
+        help_text=_("Observations tied to this insight"),
     )
     
+    evidence_score = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Evidence Score"),
+        help_text=_("1-2: Limited Evidence, 3-5: Moderate Evidence, 6+: High Evidence"),
+    )
+    
+    sentiment = models.CharField(
+        max_length=20,
+        choices=SentimentChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Sentiment"),
+        help_text=_("Sentiment analysis of the insight (optional)"),
+    )
+    
+    # Legacy field for backward compatibility
     tags_list = models.JSONField(
         default=list,
         blank=True,
-        verbose_name=_("Tags"),
-        help_text=_("List of tag names for this insight"),
+        verbose_name=_("Tags List"),
+        help_text=_("Legacy list of tag names for this insight"),
     )
+    
+    def clean(self):
+        """Validate evidence score range."""
+        super().clean()
+        if self.evidence_score is not None and self.evidence_score < 1:
+            raise ValidationError({"evidence_score": _("Evidence score must be at least 1.")})
+    
+    def save(self, *args, **kwargs):
+        """Override save to run clean validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    @property
+    def evidence_level(self):
+        """Get human-readable evidence level based on score."""
+        if self.evidence_score <= 2:
+            return _("Limited Evidence")
+        elif self.evidence_score <= 5:
+            return _("Moderate Evidence")
+        else:
+            return _("High Evidence")
     
     def __str__(self):
         """Return string representation of the evidence insight."""
-        return f"{self.title} ({self.project.name})"
+        return f"{self.title} ({self.organization.name})"
 
 
 class Recommendation(BaseModel, TaggableMixin):
@@ -1155,15 +1213,16 @@ class Recommendation(BaseModel, TaggableMixin):
     Represents actionable recommendations based on evidence insights.
     """
     
-    # Define PII fields
-    pii_fields = ["title", "description"]
+    # Define PII fields as a class attribute
+    pii_fields = ["title", "notes"]
     
     class Meta:
         verbose_name = _("Recommendation")
         verbose_name_plural = _("Recommendations")
         indexes = [
-            models.Index(fields=["organization", "project"]),
+            models.Index(fields=["organization", "type"]),
             models.Index(fields=["effort", "impact"]),
+            models.Index(fields=["status"]),
         ]
     
     class EffortChoices(models.TextChoices):
@@ -1178,6 +1237,20 @@ class Recommendation(BaseModel, TaggableMixin):
         MEDIUM = "medium", _("Medium")
         HIGH = "high", _("High")
     
+    class TypeChoices(models.TextChoices):
+        """Enumeration of recommendation types."""
+        OPPORTUNITY = "opportunity", _("Opportunity")
+        SOLUTION = "solution", _("Solution")
+    
+    class StatusChoices(models.TextChoices):
+        """Enumeration of configurable checkbox statuses."""
+        NOT_STARTED = "not_started", _("Not Started")
+        IN_DISCOVERY = "in_discovery", _("In Discovery")
+        IN_DELIVERY = "in_delivery", _("In Delivery")
+        COMPLETED = "completed", _("Completed")
+        WONT_DO = "wont_do", _("Won't Do")
+    
+    # Organization field (required for multi-tenancy and RBAC)
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
@@ -1185,11 +1258,13 @@ class Recommendation(BaseModel, TaggableMixin):
         help_text=_("Organization this recommendation belongs to"),
     )
     
-    project = models.ForeignKey(
+    # Projects can be multiple (optional, inferred from insights)
+    projects = models.ManyToManyField(
         "core.Project",
-        on_delete=models.CASCADE,
+        blank=True,
         related_name="recommendations",
-        help_text=_("Project this recommendation belongs to"),
+        verbose_name=_("Projects"),
+        help_text=_("Projects this recommendation belongs to (optional, can be multiple)"),
     )
     
     title = models.CharField(
@@ -1198,9 +1273,10 @@ class Recommendation(BaseModel, TaggableMixin):
         help_text=_("Title of the recommendation"),
     )
     
-    description = models.TextField(
-        verbose_name=_("Description"),
-        help_text=_("Detailed description of the recommendation"),
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_("Notes"),
+        help_text=_("Additional context; expandable"),
     )
     
     effort = models.CharField(
@@ -1219,21 +1295,66 @@ class Recommendation(BaseModel, TaggableMixin):
         help_text=_("Expected impact of this recommendation"),
     )
     
-    related_insights = models.ManyToManyField(
+    type = models.CharField(
+        max_length=20,
+        choices=TypeChoices.choices,
+        default=TypeChoices.OPPORTUNITY,
+        verbose_name=_("Type"),
+        help_text=_("Type of recommendation: Opportunity or Solution"),
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.NOT_STARTED,
+        verbose_name=_("Status"),
+        help_text=_("Configurable checkbox status"),
+    )
+    
+    # Supporting Evidence: Insights tied to this recommendation
+    supporting_evidence = models.ManyToManyField(
         "core.EvidenceInsight",
         blank=True,
         related_name="recommendations",
-        verbose_name=_("Related Insights"),
-        help_text=_("Evidence insights that support this recommendation"),
+        verbose_name=_("Supporting Evidence"),
+        help_text=_("Insights tied to this recommendation"),
     )
     
+    evidence_score = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Evidence Score"),
+        help_text=_("Based on sum of associated insight evidence scores (1-2: Limited, 3-5: Moderate, 6+: High)"),
+    )
+    
+    # Legacy field for backward compatibility
     tags_list = models.JSONField(
         default=list,
         blank=True,
-        verbose_name=_("Tags"),
-        help_text=_("List of tag names for this recommendation"),
+        verbose_name=_("Tags List"),
+        help_text=_("Legacy list of tag names for this recommendation"),
     )
+    
+    def clean(self):
+        """Validate evidence score range."""
+        super().clean()
+        if self.evidence_score is not None and self.evidence_score < 1:
+            raise ValidationError({"evidence_score": _("Evidence score must be at least 1.")})
+    
+    def save(self, *args, **kwargs):
+        """Override save to run clean validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    @property
+    def evidence_level(self):
+        """Get human-readable evidence level based on score."""
+        if self.evidence_score <= 2:
+            return _("Limited Evidence")
+        elif self.evidence_score <= 5:
+            return _("Moderate Evidence")
+        else:
+            return _("High Evidence")
     
     def __str__(self):
         """Return string representation of the recommendation."""
-        return f"{self.title} ({self.project.name})"
+        return f"{self.title} ({self.organization.name})"

@@ -56,15 +56,15 @@ class EvidenceSourceViewSet(BaseViewSet):
         
         queryset = EvidenceSource.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'project', 'created_by')
+        ).select_related('organization', 'created_by').prefetch_related('projects')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
         
-        # Order by upload_date desc (matching Supabase pattern)
-        return queryset.order_by('-upload_date')
+        # Order by created_at desc (since upload_date field was removed)
+        return queryset.order_by('-created_at')
     
     def get_serializer_class(self):
         """Return appropriate serializer for the action."""
@@ -160,20 +160,20 @@ class EvidenceFactViewSet(BaseViewSet):
         
         queryset = EvidenceFact.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'project', 'source', 'created_by')
+        ).select_related('organization', 'source', 'created_by').prefetch_related('projects')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
         
         # Filter by source if specified
         source_id = self.request.query_params.get('source_id')
         if source_id:
             queryset = queryset.filter(source_id=source_id)
         
-        # Order by extracted_at desc (matching Supabase pattern)
-        return queryset.order_by('-extracted_at')
+        # Order by created_at desc (since extracted_at field was removed)
+        return queryset.order_by('-created_at')
     
     def get_serializer_class(self):
         """Return appropriate serializer for the action."""
@@ -290,12 +290,12 @@ class EvidenceChunkViewSet(BaseReadOnlyViewSet):
         
         queryset = EvidenceChunk.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'project', 'source', 'created_by')
+        ).select_related('organization', 'source', 'created_by').prefetch_related('projects')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
         
         return queryset.order_by('source_id', 'chunk_index')
 
@@ -323,12 +323,12 @@ class EvidenceInsightViewSet(BaseViewSet):
         
         queryset = EvidenceInsight.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'project', 'created_by').prefetch_related('related_facts')
+        ).select_related('organization', 'created_by').prefetch_related('supporting_evidence', 'projects')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
         
         # Order by created_at desc (matching Supabase pattern)
         return queryset.order_by('-created_at')
@@ -392,12 +392,12 @@ class RecommendationViewSet(BaseViewSet):
         
         queryset = Recommendation.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'project', 'created_by').prefetch_related('related_insights')
+        ).select_related('organization', 'created_by').prefetch_related('supporting_evidence', 'projects')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            queryset = queryset.filter(project_id=project_id)
+            queryset = queryset.filter(projects__id=project_id)
         
         # Order by created_at desc (matching Supabase pattern)
         return queryset.order_by('-created_at')

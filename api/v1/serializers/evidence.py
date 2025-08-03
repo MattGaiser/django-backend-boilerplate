@@ -28,10 +28,8 @@ class EvidenceSourceSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    project_name = serializers.CharField(
-        source="project.name",
-        read_only=True,
-        help_text=_("Name of the project"),
+    project_names = serializers.SerializerMethodField(
+        help_text=_("Names of the projects this source belongs to"),
     )
     
     processing_status_display = serializers.CharField(
@@ -54,23 +52,21 @@ class EvidenceSourceSerializer(serializers.ModelSerializer):
         model = EvidenceSource
         fields = [
             "id",
-            "name",
+            "title",
             "type",
             "type_display",
             "file_path",
-            "content",
+            "notes",
             "file_size",
             "mime_type",
             "processing_status",
             "processing_status_display",
-            "upload_date",
             "summary",
-            "notes",
             "metadata",
             "organization",
             "organization_name",
-            "project",
-            "project_name",
+            "projects",
+            "project_names",
             "tags",
             "created_at",
             "updated_at",
@@ -78,12 +74,11 @@ class EvidenceSourceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "organization",
+            "organization",  # Set automatically by viewset
             "organization_name",
-            "project_name",
-            "type_display",
+            "project_names",
             "processing_status_display",
-            "upload_date",
+            "type_display",
             "created_at",
             "updated_at",
             "created_by",
@@ -96,10 +91,14 @@ class EvidenceSourceSerializer(serializers.ModelSerializer):
         except:
             return []
     
-    def validate_name(self, value):
-        """Validate name field."""
+    def get_project_names(self, obj):
+        """Get list of project names for this source."""
+        return [project.title for project in obj.projects.all()]
+    
+    def validate_title(self, value):
+        """Validate title field."""
         if not value or not value.strip():
-            raise serializers.ValidationError(_("Name cannot be empty."))
+            raise serializers.ValidationError(_("Title cannot be empty."))
         return value.strip()
 
 
@@ -119,10 +118,9 @@ class CreateEvidenceSourceSerializer(EvidenceSourceSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
+            "project_names",
             "type_display",
             "processing_status_display",
-            "upload_date",
             "created_at",
             "updated_at",
             "created_by",
@@ -155,16 +153,14 @@ class EvidenceFactSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    project_name = serializers.CharField(
-        source="project.name",
-        read_only=True,
-        help_text=_("Name of the project"),
+    project_names = serializers.SerializerMethodField(
+        help_text=_("Names of the projects this fact belongs to"),
     )
     
-    source_name = serializers.CharField(
-        source="source.name",
+    source_title = serializers.CharField(
+        source="source.title",
         read_only=True,
-        help_text=_("Name of the evidence source"),
+        help_text=_("Title of the evidence source"),
     )
     
     sentiment_display = serializers.CharField(
@@ -181,22 +177,20 @@ class EvidenceFactSerializer(serializers.ModelSerializer):
         model = EvidenceFact
         fields = [
             "id",
-            "content",
             "title",
             "notes",
             "confidence_score",
             "participant",
             "sentiment",
             "sentiment_display",
-            "extracted_at",
             "embedding",
             "tags_list",
             "organization",
             "organization_name",
-            "project",
-            "project_name",
+            "projects",
+            "project_names",
             "source",
-            "source_name",
+            "source_title",
             "tags",
             "created_at",
             "updated_at",
@@ -206,10 +200,9 @@ class EvidenceFactSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
-            "source_name",
+            "project_names",
+            "source_title",
             "sentiment_display",
-            "extracted_at",
             "created_at",
             "updated_at",
             "created_by",
@@ -221,6 +214,10 @@ class EvidenceFactSerializer(serializers.ModelSerializer):
             return list(obj.get_tag_names()) if hasattr(obj, "get_tag_names") else []
         except:
             return []
+    
+    def get_project_names(self, obj):
+        """Get list of project names for this fact."""
+        return [project.title for project in obj.projects.all()]
 
 
 class CreateEvidenceFactSerializer(EvidenceFactSerializer):
@@ -239,10 +236,9 @@ class CreateEvidenceFactSerializer(EvidenceFactSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
-            "source_name",
+            "project_names",
+            "source_title",
             "sentiment_display",
-            "extracted_at",
             "created_at",
             "updated_at",
             "created_by",
@@ -301,16 +297,14 @@ class EvidenceChunkSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    project_name = serializers.CharField(
-        source="project.name",
-        read_only=True,
-        help_text=_("Name of the project"),
+    project_names = serializers.SerializerMethodField(
+        help_text=_("Names of the projects this chunk belongs to"),
     )
     
-    source_name = serializers.CharField(
-        source="source.name",
+    source_title = serializers.CharField(
+        source="source.title",
         read_only=True,
-        help_text=_("Name of the evidence source"),
+        help_text=_("Title of the evidence source"),
     )
     
     class Meta:
@@ -323,10 +317,10 @@ class EvidenceChunkSerializer(serializers.ModelSerializer):
             "metadata",
             "organization",
             "organization_name",
-            "project",
-            "project_name",
+            "projects",
+            "project_names",
             "source",
-            "source_name",
+            "source_title",
             "created_at",
             "updated_at",
             "created_by",
@@ -335,12 +329,16 @@ class EvidenceChunkSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
-            "source_name",
+            "project_names",
+            "source_title",
             "created_at",
             "updated_at",
             "created_by",
         ]
+    
+    def get_project_names(self, obj):
+        """Get list of project names for this chunk."""
+        return [project.title for project in obj.projects.all()]
 
 
 class EvidenceInsightSerializer(serializers.ModelSerializer):
@@ -354,10 +352,8 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    project_name = serializers.CharField(
-        source="project.name",
-        read_only=True,
-        help_text=_("Name of the project"),
+    project_names = serializers.SerializerMethodField(
+        help_text=_("Names of the projects this insight belongs to"),
     )
     
     priority_display = serializers.CharField(
@@ -366,12 +362,23 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
         help_text=_("Human-readable priority"),
     )
     
+    sentiment_display = serializers.CharField(
+        source="get_sentiment_display",
+        read_only=True,
+        help_text=_("Human-readable sentiment"),
+    )
+    
+    evidence_level = serializers.CharField(
+        read_only=True,
+        help_text=_("Human-readable evidence level"),
+    )
+    
     tags = serializers.SerializerMethodField(
         help_text=_("Tags associated with this evidence insight")
     )
     
-    related_facts_count = serializers.SerializerMethodField(
-        help_text=_("Number of related facts")
+    supporting_evidence_count = serializers.SerializerMethodField(
+        help_text=_("Number of supporting evidence facts")
     )
     
     class Meta:
@@ -379,16 +386,20 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
-            "description",
+            "notes",
             "priority",
             "priority_display",
+            "evidence_score",
+            "evidence_level",
+            "sentiment",
+            "sentiment_display",
             "tags_list",
-            "related_facts",
-            "related_facts_count",
+            "supporting_evidence",
+            "supporting_evidence_count",
             "organization",
             "organization_name",
-            "project",
-            "project_name",
+            "projects",
+            "project_names",
             "tags",
             "created_at",
             "updated_at",
@@ -398,9 +409,11 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
+            "project_names",
             "priority_display",
-            "related_facts_count",
+            "sentiment_display",
+            "evidence_level",
+            "supporting_evidence_count",
             "created_at",
             "updated_at",
             "created_by",
@@ -413,9 +426,13 @@ class EvidenceInsightSerializer(serializers.ModelSerializer):
         except:
             return []
     
-    def get_related_facts_count(self, obj):
-        """Get count of related facts."""
-        return obj.related_facts.count()
+    def get_project_names(self, obj):
+        """Get list of project names for this insight."""
+        return [project.title for project in obj.projects.all()]
+    
+    def get_supporting_evidence_count(self, obj):
+        """Get count of supporting evidence."""
+        return obj.supporting_evidence.count()
 
 
 class CreateEvidenceInsightSerializer(EvidenceInsightSerializer):
@@ -434,9 +451,11 @@ class CreateEvidenceInsightSerializer(EvidenceInsightSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
+            "project_names",
             "priority_display",
-            "related_facts_count",
+            "sentiment_display",
+            "evidence_level",
+            "supporting_evidence_count",
             "created_at",
             "updated_at",
             "created_by",
@@ -469,10 +488,8 @@ class RecommendationSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    project_name = serializers.CharField(
-        source="project.name",
-        read_only=True,
-        help_text=_("Name of the project"),
+    project_names = serializers.SerializerMethodField(
+        help_text=_("Names of the projects this recommendation belongs to"),
     )
     
     effort_display = serializers.CharField(
@@ -487,12 +504,29 @@ class RecommendationSerializer(serializers.ModelSerializer):
         help_text=_("Human-readable impact level"),
     )
     
+    type_display = serializers.CharField(
+        source="get_type_display",
+        read_only=True,
+        help_text=_("Human-readable type"),
+    )
+    
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+        help_text=_("Human-readable status"),
+    )
+    
+    evidence_level = serializers.CharField(
+        read_only=True,
+        help_text=_("Human-readable evidence level"),
+    )
+    
     tags = serializers.SerializerMethodField(
         help_text=_("Tags associated with this recommendation")
     )
     
-    related_insights_count = serializers.SerializerMethodField(
-        help_text=_("Number of related insights")
+    supporting_evidence_count = serializers.SerializerMethodField(
+        help_text=_("Number of supporting insights")
     )
     
     class Meta:
@@ -500,18 +534,24 @@ class RecommendationSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
-            "description",
+            "notes",
             "effort",
             "effort_display",
             "impact",
             "impact_display",
+            "type",
+            "type_display",
+            "status",
+            "status_display",
+            "evidence_score",
+            "evidence_level",
             "tags_list",
-            "related_insights",
-            "related_insights_count",
+            "supporting_evidence",
+            "supporting_evidence_count",
             "organization",
             "organization_name",
-            "project",
-            "project_name",
+            "projects",
+            "project_names",
             "tags",
             "created_at",
             "updated_at",
@@ -521,10 +561,13 @@ class RecommendationSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
+            "project_names",
             "effort_display",
             "impact_display",
-            "related_insights_count",
+            "type_display",
+            "status_display",
+            "evidence_level",
+            "supporting_evidence_count",
             "created_at",
             "updated_at",
             "created_by",
@@ -537,9 +580,13 @@ class RecommendationSerializer(serializers.ModelSerializer):
         except:
             return []
     
-    def get_related_insights_count(self, obj):
-        """Get count of related insights."""
-        return obj.related_insights.count()
+    def get_project_names(self, obj):
+        """Get list of project names for this recommendation."""
+        return [project.title for project in obj.projects.all()]
+    
+    def get_supporting_evidence_count(self, obj):
+        """Get count of supporting evidence."""
+        return obj.supporting_evidence.count()
 
 
 class CreateRecommendationSerializer(RecommendationSerializer):
@@ -558,10 +605,13 @@ class CreateRecommendationSerializer(RecommendationSerializer):
             "id",
             "organization",
             "organization_name",
-            "project_name",
+            "project_names",
             "effort_display",
             "impact_display",
-            "related_insights_count",
+            "type_display",
+            "status_display",
+            "evidence_level",
+            "supporting_evidence_count",
             "created_at",
             "updated_at",
             "created_by",
