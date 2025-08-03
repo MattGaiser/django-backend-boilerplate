@@ -1,7 +1,6 @@
 from django.test import TestCase
-from django.utils.translation import gettext_lazy as _
 
-from core.constants import PlanChoices, LanguageChoices
+from core.constants import LanguageChoices, PlanChoices
 
 
 class TestPlanChoices(TestCase):
@@ -33,10 +32,10 @@ class TestPlanChoices(TestCase):
         """Test plan limits for free plan."""
         limits = PlanChoices.get_plan_limits(PlanChoices.FREE)
         expected = {
-            'max_users': 5,
-            'max_projects': 10,
-            'storage_gb': 1,
-            'api_calls_per_month': 1000,
+            "max_users": 5,
+            "max_projects": 10,
+            "storage_gb": 1,
+            "api_calls_per_month": 1000,
         }
         self.assertEqual(limits, expected)
 
@@ -44,10 +43,10 @@ class TestPlanChoices(TestCase):
         """Test plan limits for standard plan."""
         limits = PlanChoices.get_plan_limits(PlanChoices.STANDARD)
         expected = {
-            'max_users': 25,
-            'max_projects': 100,
-            'storage_gb': 50,
-            'api_calls_per_month': 10000,
+            "max_users": 25,
+            "max_projects": 100,
+            "storage_gb": 50,
+            "api_calls_per_month": 10000,
         }
         self.assertEqual(limits, expected)
 
@@ -55,10 +54,10 @@ class TestPlanChoices(TestCase):
         """Test plan limits for enterprise plan."""
         limits = PlanChoices.get_plan_limits(PlanChoices.ENTERPRISE)
         expected = {
-            'max_users': None,
-            'max_projects': None,
-            'storage_gb': 500,
-            'api_calls_per_month': 100000,
+            "max_users": None,
+            "max_projects": None,
+            "storage_gb": 500,
+            "api_calls_per_month": 100000,
         }
         self.assertEqual(limits, expected)
 

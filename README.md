@@ -31,6 +31,7 @@ An enterprise-ready Django backend boilerplate with comprehensive multi-tenant a
 - **Factory Boy**: Test data generation with realistic fixtures
 - **Demo Data**: Automated demo user and organization creation
 - **Structured Logging**: JSON logging with request tracking
+- **Code Quality**: Automated linting with black, isort, autoflake, and flake8
 
 ### 🐳 Infrastructure
 - **Docker Compose**: Multi-environment setup (dev, test, staging, production)
@@ -446,6 +447,34 @@ pytest api/v1/tests/ -v
 # Run with coverage
 pytest --cov=core --cov=api -v
 ```
+
+### Code Quality & Linting
+
+The project includes a comprehensive linting script to maintain code quality:
+
+```bash
+# Run all linting tools (fixes issues automatically)
+./lint_everything.sh
+
+# Check code quality without making changes
+./lint_everything.sh --check
+
+# See available options
+./lint_everything.sh --help
+```
+
+**Linting Tools Used:**
+- **autoflake**: Removes unused imports and variables
+- **isort**: Sorts and organizes imports (black-compatible)
+- **black**: Formats code according to PEP 8 (88-character line length)
+- **flake8**: Checks for style guide violations and code issues
+
+**Features:**
+- ✅ **One Command**: Fix all formatting, import order, and unused imports
+- ✅ **Check Mode**: Preview changes before applying them
+- ✅ **Smart Exclusions**: Skips migrations, __pycache__, and other build artifacts
+- ✅ **Dependency Management**: Automatically installs missing linting tools
+- ✅ **Colored Output**: Clear visual feedback on what was changed
 
 ### Demo Data and Development
 

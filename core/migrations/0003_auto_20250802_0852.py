@@ -6,35 +6,35 @@ from django.db import migrations
 def migrate_role_values(apps, schema_editor):
     """
     Migrate existing role values to new role system.
-    
+
     Maps:
     - super_admin -> admin (highest level becomes admin)
     - admin -> admin (stays admin)
     - editor -> manager (editor becomes manager)
     - viewer -> viewer (stays viewer)
     """
-    OrganizationMembership = apps.get_model('core', 'OrganizationMembership')
-    
+    OrganizationMembership = apps.get_model("core", "OrganizationMembership")
+
     # Update super_admin to admin
-    OrganizationMembership.objects.filter(role='super_admin').update(role='admin')
-    
+    OrganizationMembership.objects.filter(role="super_admin").update(role="admin")
+
     # Update editor to manager
-    OrganizationMembership.objects.filter(role='editor').update(role='manager')
-    
+    OrganizationMembership.objects.filter(role="editor").update(role="manager")
+
     # admin and viewer roles stay the same
 
 
 def reverse_migrate_role_values(apps, schema_editor):
     """
     Reverse migration for role values.
-    
+
     This is a best-effort reverse - some information may be lost.
     """
-    OrganizationMembership = apps.get_model('core', 'OrganizationMembership')
-    
+    OrganizationMembership = apps.get_model("core", "OrganizationMembership")
+
     # Reverse manager back to editor
-    OrganizationMembership.objects.filter(role='manager').update(role='editor')
-    
+    OrganizationMembership.objects.filter(role="manager").update(role="editor")
+
     # Note: We can't distinguish which admin users were originally super_admin
     # so all admin users will remain as admin in the reverse migration
 
@@ -42,12 +42,9 @@ def reverse_migrate_role_values(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_organization_organizationmembership_and_more'),
+        ("core", "0002_organization_organizationmembership_and_more"),
     ]
 
     operations = [
-        migrations.RunPython(
-            migrate_role_values, 
-            reverse_migrate_role_values
-        ),
+        migrations.RunPython(migrate_role_values, reverse_migrate_role_values),
     ]
