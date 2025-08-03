@@ -97,23 +97,23 @@ class IsAuthenticatedAndInOrgWithRole(BasePermission):
 
 class IsOrgAdmin(IsAuthenticatedAndInOrgWithRole):
     """
-    Convenience permission class that requires ADMIN role in the organization.
+    Convenience permission class that requires ADMIN or SUPER_ADMIN role in the organization.
     """
     
     def has_permission(self, request, view):
-        # Set required_roles to ADMIN only
-        view.required_roles = [OrgRole.ADMIN]
+        # Set required_roles to ADMIN and SUPER_ADMIN (SUPER_ADMIN has all ADMIN permissions)
+        view.required_roles = [OrgRole.ADMIN, OrgRole.SUPER_ADMIN]
         return super().has_permission(request, view)
 
 
 class IsOrgAdminOrManager(IsAuthenticatedAndInOrgWithRole):
     """
-    Convenience permission class that requires ADMIN or MANAGER role in the organization.
+    Convenience permission class that requires ADMIN, SUPER_ADMIN, or MANAGER role in the organization.
     """
     
     def has_permission(self, request, view):
-        # Set required_roles to ADMIN and MANAGER
-        view.required_roles = [OrgRole.ADMIN, OrgRole.MANAGER]
+        # Set required_roles to SUPER_ADMIN, ADMIN and MANAGER
+        view.required_roles = [OrgRole.SUPER_ADMIN, OrgRole.ADMIN, OrgRole.MANAGER]
         return super().has_permission(request, view)
 
 
