@@ -31,7 +31,7 @@ class TestPIIValidationSignal(TestCase):
         mock_model._meta = MockModel._meta()
 
         # Test that the signal would raise an error
-        with patch("core.signals.validate_pii_fields") as mock_validate:
+        with patch("core.signals.validate_pii_fields"):
             # Simulate what would happen in the signal
             pii_field_names = {"email", "full_name", "phone"}
             model_field_names = {"email", "full_name"}
