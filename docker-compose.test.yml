@@ -11,9 +11,11 @@ services:
       - .env.test
     environment:
       - DEBUG=false
+      - DJANGO_SETTINGS_MODULE=DjangoBoilerplate.settings
     command: >
-      sh -c "python manage.py migrate &&
-             pytest -v --tb=short --reuse-db"
+      sh -c "pip install -r requirements-dev.txt &&
+             python manage.py migrate &&
+             python -m pytest -v --tb=short --reuse-db --ds=DjangoBoilerplate.settings"
 
   prefect-server:
     env_file:
@@ -21,6 +23,7 @@ services:
     environment:
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_UI_ENABLED: false
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://postgres:postgres@db:5432/postgres_prefect
     ports: []
 
   prefect-agent:
