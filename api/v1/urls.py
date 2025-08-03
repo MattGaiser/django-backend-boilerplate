@@ -18,6 +18,14 @@ from api.v1.views.auth import (
 from api.v1.views.demo import LoggingDemoView
 from api.v1.views.flow_trigger import trigger_hello_world_flow
 from api.v1.views.health import HealthCheckView
+from api.v1.views.storage import (
+    storage_upload,
+    storage_download,
+    storage_delete,
+    storage_list,
+    storage_info,
+    storage_usage,
+)
 from api.v1.views.user import PublicUserViewSet, UserViewSet
 from api.v1.views.version import version_info
 from api.views import api_root
@@ -46,6 +54,13 @@ urlpatterns = [
     path("auth/status/", auth_status, name="api-auth-status"),
     # Flow trigger endpoints
     path("flows/test-run/", trigger_hello_world_flow, name="trigger-hello-world-flow"),
+    # Storage endpoints
+    path("storage/upload/", storage_upload, name="storage-upload"),
+    path("storage/download/<path:file_path>/", storage_download, name="storage-download"),
+    path("storage/delete/<path:file_path>/", storage_delete, name="storage-delete"),
+    path("storage/list/", storage_list, name="storage-list"),
+    path("storage/info/<path:file_path>/", storage_info, name="storage-info"),
+    path("storage/usage/", storage_usage, name="storage-usage"),
     # Include router URLs
     path("", include(router.urls)),
 ]

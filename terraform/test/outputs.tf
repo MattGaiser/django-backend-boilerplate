@@ -37,3 +37,13 @@ output "service_account_email" {
   description = "Email of the service account used by applications"
   value       = google_service_account.app_service_account.email
 }
+
+output "storage_bucket_name" {
+  description = "Name of the application storage bucket"
+  value       = module.app_storage.bucket_name
+}
+
+output "storage_bucket_url" {
+  description = "URL of the application storage bucket"
+  value       = module.app_storage.bucket_url
+}

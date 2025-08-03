@@ -60,6 +60,12 @@ resource "google_project_iam_member" "app_service_account_secret_accessor" {
   member  = "serviceAccount:${google_service_account.app_service_account.email}"
 }
 
+resource "google_project_iam_member" "app_service_account_storage_admin" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.app_service_account.email}"
+}
+
 # Artifact Registry for Docker images
 module "artifact_registry" {
   source = "../modules/artifact-registry"
@@ -158,6 +164,9 @@ module "django_backend" {
     POSTGRES_USER     = module.database.database_user
     POSTGRES_PORT     = "5432"
     ALLOWED_HOSTS     = var.custom_domains != null ? join(",", var.custom_domains) : "*.run.app,${local.environment}-django-backend-*.run.app"
+    # Google Cloud Storage configuration
+    GCS_BUCKET_NAME   = module.app_storage.bucket_name
+    USE_GCS_EMULATOR  = "false"
   }
 
   secrets = {
@@ -241,6 +250,74 @@ module "frontend_hosting" {
   custom_domains = var.custom_domains
   ssl_certificates = var.ssl_certificates
   labels        = local.labels
+}
+
+# Application cloud storage
+module "app_storage" {
+  source = "../modules/cloud-storage"
+
+  project_id  = var.project_id
+  bucket_name = "${local.environment}-app-assets-${random_id.bucket_suffix.hex}"
+  location    = var.region
+
+  # Production environment specific settings
+  enable_versioning   = true
+  enable_public_access = false
+
+  backend_service_accounts = [
+    "serviceAccount:${google_service_account.app_service_account.email}"
+  ]
+
+  # CORS rules for production domains
+  cors_rules = var.custom_domains != null ? [
+    {
+      origin          = concat(["https://*.run.app"], [for domain in var.custom_domains : "https://${domain}"])
+      method          = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      response_header = ["Content-Type", "Authorization"]
+      max_age_seconds = 3600
+    }
+  ] : [
+    {
+      origin          = ["https://*.run.app"]
+      method          = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      response_header = ["Content-Type", "Authorization"]
+      max_age_seconds = 3600
+    }
+  ]
+
+  # Lifecycle rules for cost optimization
+  lifecycle_rules = [
+    {
+      condition = {
+        age = 90
+      }
+      action = {
+        type          = "SetStorageClass"
+        storage_class = "NEARLINE"
+      }
+    },
+    {
+      condition = {
+        age = 365
+      }
+      action = {
+        type          = "SetStorageClass"
+        storage_class = "COLDLINE"
+      }
+    },
+    {
+      condition = {
+        age                = 7
+        with_state        = "NONCURRENT_VERSION"
+        num_newer_versions = 3
+      }
+      action = {
+        type = "Delete"
+      }
+    }
+  ]
+
+  labels = local.labels
 }
 
 # Random suffix for bucket name (must be globally unique)

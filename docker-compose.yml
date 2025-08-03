@@ -27,6 +27,10 @@ services:
       - POSTGRES_PORT=5432
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - PREFECT_API_URL=http://prefect-server:4200/api
+      # Google Cloud Storage configuration
+      - USE_GCS_EMULATOR=${USE_GCS_EMULATOR}
+      - GCS_EMULATOR_HOST=${GCS_EMULATOR_HOST}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
     env_file:
       - .env.dev
     depends_on:
@@ -34,6 +38,8 @@ services:
         condition: service_healthy
       prefect-server:
         condition: service_healthy
+      fake-gcs-server:
+        condition: service_started
     volumes:
       - .:/app
     command: >
@@ -82,5 +88,14 @@ services:
              prefect work-pool create --type docker default-pool || true &&
              prefect worker start --pool default-pool"
 
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:1.49.0
+    ports:
+      - "9090:9090"
+    command: -scheme http -host 0.0.0.0 -port 9090
+    volumes:
+      - gcs_data:/data
+
 volumes:
   prefect_data:
+  gcs_data:
