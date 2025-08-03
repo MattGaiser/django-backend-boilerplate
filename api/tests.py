@@ -18,14 +18,14 @@ class APIRootTestCase(APITestCase):
     
     def test_api_root_accessible_without_authentication(self):
         """Test that API root is accessible without authentication."""
-        url = '/api/'  # Direct path since we're testing the API root
+        url = '/api/v1/'  # Updated path since API root is now under v1
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
     
     def test_api_root_structure(self):
         """Test that API root returns expected structure."""
-        url = '/api/'  # Direct path since we're testing the API root
+        url = '/api/v1/'  # Updated path since API root is now under v1
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -53,7 +53,7 @@ class APIRootTestCase(APITestCase):
     
     def test_api_root_absolute_urls(self):
         """Test that API root returns absolute URLs."""
-        url = '/api/'  # Direct path since we're testing the API root
+        url = '/api/v1/'  # Updated path since API root is now under v1
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -70,7 +70,7 @@ class APIRootTestCase(APITestCase):
     
     def test_api_root_message(self):
         """Test that API root contains expected message."""
-        url = '/api/'  # Direct path since we're testing the API root
+        url = '/api/v1/'  # Updated path since API root is now under v1
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)

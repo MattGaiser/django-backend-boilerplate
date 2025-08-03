@@ -18,6 +18,7 @@ from api.v1.views.auth import (
 
 from api.v1.views.flow_trigger import trigger_hello_world_flow
 from api.v1.views.version import version_info
+from api.views import api_root
 
 # Create the main router for v1 API
 router = DefaultRouter()
@@ -28,6 +29,9 @@ router.register(r'public/users', PublicUserViewSet, basename='public-users')
 
 # URL patterns for v1 API
 urlpatterns = [
+    # API discovery endpoint
+    path('', api_root, name='api-root'),
+    
     # Version endpoint  
     path('version/', version_info, name='api-version'),
     
