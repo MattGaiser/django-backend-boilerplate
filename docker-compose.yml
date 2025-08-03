@@ -19,18 +19,11 @@ services:
   django:
     build: .
     environment:
-      - DJANGO_ENV=${DJANGO_ENV}
-      - DEBUG=${DEBUG}
-      - SECRET_KEY=${SECRET_KEY}
+      # These are hardcoded values that don't change between environments
       - USE_POSTGRES=true
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - PREFECT_API_URL=http://prefect-server:4200/api
-      # Google Cloud Storage configuration
-      - USE_GCS_EMULATOR=${USE_GCS_EMULATOR}
-      - GCS_EMULATOR_HOST=${GCS_EMULATOR_HOST}
-      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
     env_file:
       - .env.dev
     depends_on:
@@ -54,7 +47,6 @@ services:
     environment:
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_SERVER_API_PORT: 4200
-      PREFECT_API_DATABASE_CONNECTION_URL: ${PREFECT_API_DATABASE_CONNECTION_URL}
     ports:
       - "4200:4200"
     depends_on:
