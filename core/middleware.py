@@ -1,4 +1,6 @@
 from .signals import set_current_user
+from django.middleware.csrf import CsrfViewMiddleware
+from django.conf import settings
 
 
 class CurrentUserMiddleware:
@@ -25,3 +27,25 @@ class CurrentUserMiddleware:
         set_current_user(None)
         
         return response
+
+
+class TokenBasedCSRFExemptMiddleware(CsrfViewMiddleware):
+    """
+    CSRF middleware that exempts API endpoints using token authentication.
+    
+    For API endpoints using token authentication, CSRF protection is not
+    necessary since tokens provide their own security mechanism.
+    This middleware exempts API URLs from CSRF checks when using token auth.
+    """
+    
+    def process_view(self, request, callback, callback_args, callback_kwargs):
+        # Check if this is an API endpoint
+        if request.path.startswith('/api/'):
+            # Check if using token authentication
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            if auth_header.startswith('Token '):
+                # Exempt from CSRF for token-based API requests
+                return None
+        
+        # Use default CSRF processing for all other requests
+        return super().process_view(request, callback, callback_args, callback_kwargs)

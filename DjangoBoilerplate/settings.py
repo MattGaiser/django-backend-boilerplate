@@ -42,18 +42,29 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
+    'django.contrib.sites',  # Required for allauth
     'rest_framework',
     'rest_framework.authtoken',
+    # Django allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # Social providers
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.microsoft',
     'core.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'core.middleware.TokenBasedCSRFExemptMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Required for allauth
     'core.middleware.CurrentUserMiddleware',
     'core.logging.StructuredLoggingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -242,16 +253,114 @@ REST_FRAMEWORK = {
     'ALLOWED_VERSIONS': ['v1'],
     'VERSION_PARAM': 'version',
     
-    # Throttling - scaffolded but not active
+    # Throttling - enabled with reasonable defaults
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': None,  # Disabled for now
-        'user': None,  # Disabled for now
+        'anon': '100/hour',      # Anonymous users: 100 requests per hour
+        'user': '1000/hour',     # Authenticated users: 1000 requests per hour
     },
     
     # Exception handling
     'EXCEPTION_HANDLER': 'api.v1.exceptions.custom_exception_handler',
+}
+
+# CORS Configuration for Frontend Integration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    # React development server
+    "http://127.0.0.1:3000",   # Alternative React development server
+    "http://0.0.0.0:3000",     # Docker-based React development
+]
+
+# Additional CORS settings for development
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in debug mode
+
+# CSRF Configuration for Token-Based Authentication
+# Since we use token authentication for API endpoints, we can exempt API URLs from CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://0.0.0.0:3000",
+]
+
+# Security Headers Configuration
+SECURE_CONTENT_TYPE_NOSNIFF = True          # X-Content-Type-Options: nosniff
+X_FRAME_OPTIONS = 'DENY'                    # X-Frame-Options: DENY
+SECURE_BROWSER_XSS_FILTER = True           # X-XSS-Protection: 1; mode=block
+
+# Content Security Policy (basic configuration)
+SECURE_CSP_DEFAULT_SRC = "'self'"
+SECURE_CSP_SCRIPT_SRC = "'self' 'unsafe-inline'"
+SECURE_CSP_STYLE_SRC = "'self' 'unsafe-inline'"
+SECURE_CSP_IMG_SRC = "'self' data: https:"
+SECURE_CSP_CONNECT_SRC = "'self'"
+
+# Additional security headers for production
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000           # HSTS header for 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True               # Redirect HTTP to HTTPS
+# Django Sites Framework (required for allauth)
+SITE_ID = 1
+
+# Django Allauth Configuration
+AUTHENTICATION_BACKENDS = [
+    # Default Django authentication backend
+    'django.contrib.auth.backends.ModelBackend',
+    # Allauth authentication backends
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Allauth general settings
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_RATE_LIMITS = {
+    'login_failed': '5/5m',  # 5 attempts per 5 minutes
+}
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
+
+# Social account settings
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Social accounts are pre-verified
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_ADAPTER = 'core.adapters.CustomSocialAccountAdapter'
+ACCOUNT_ADAPTER = 'core.adapters.CustomAccountAdapter'
+
+# Social provider configurations - Google OAuth2
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+        'APP': {
+            'client_id': config('GOOGLE_OAUTH2_CLIENT_ID', default=''),
+            'secret': config('GOOGLE_OAUTH2_CLIENT_SECRET', default=''),
+            'key': '',
+        },
+    },
+    'microsoft': {
+        'SCOPE': [
+            'User.Read',
+            'email',
+        ],
+        'APP': {
+            'client_id': config('AZURE_AD_CLIENT_ID', default=''),
+            'secret': config('AZURE_AD_CLIENT_SECRET', default=''),
+            'key': '',
+        },
+    },
 }

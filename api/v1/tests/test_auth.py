@@ -148,3 +148,39 @@ class AuthenticationTestCase(APITestCase):
                 status.HTTP_401_UNAUTHORIZED,
                 f"URL {url} should require authentication"
             )
+    
+    def test_auth_status_authenticated_user(self):
+        """Test auth status endpoint with authenticated user."""
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+        
+        url = reverse('api-auth-status')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['authenticated'])
+        self.assertIsNotNone(response.data['user'])
+        self.assertEqual(response.data['user']['email'], self.user.email)
+        self.assertIn('organizations', response.data['user'])
+    
+    def test_auth_status_unauthenticated_user(self):
+        """Test auth status endpoint with unauthenticated user."""
+        url = reverse('api-auth-status')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['authenticated'])
+        self.assertIsNone(response.data['user'])
+    
+    def test_auth_status_allows_anonymous_access(self):
+        """Test that auth status endpoint allows anonymous access."""
+        url = reverse('api-auth-status')
+        
+        # Test without any authentication
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['authenticated'])
+        
+        # Note: Testing with invalid token will return 401 due to DRF authentication
+        # middleware, which is the expected behavior. The endpoint allows anonymous
+        # access, but if a token is provided, it must be valid.

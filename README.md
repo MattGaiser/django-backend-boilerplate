@@ -8,6 +8,7 @@ An enterprise-ready Django backend boilerplate with comprehensive multi-tenant a
 - **Custom User Model**: Email-based authentication with UUID primary keys
 - **Multi-Tenancy**: Organization-based data isolation with role-based permissions  
 - **RBAC System**: Admin, Manager, and Viewer roles with organization scoping
+- **SSO Integration**: Google OAuth2 and Azure AD via django-allauth
 - **Audit Trails**: Automatic tracking of created_by, updated_by, and timestamps
 - **Soft Delete**: Safe data removal with recovery capabilities
 - **PII Compliance**: Built-in PII field tracking and data protection
@@ -143,6 +144,196 @@ Optimized for production with multiple Gunicorn workers and minimal Prefect UI.
 # Start services (automatically loads .env.production)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
+
+## SSO Integration
+
+This boilerplate includes comprehensive SSO (Single Sign-On) integration via django-allauth, supporting both social authentication and email-based login.
+
+### Features
+
+- ✅ **Email-based authentication** as default (username login disabled)
+- ✅ **Google OAuth2** and **Azure AD** social providers pre-configured
+- ✅ **Django Admin integration** for managing social applications
+- ✅ **Custom adapters** for organization scoping during login
+- ✅ **Environment-based credentials** for secure configuration
+- ✅ **Development-friendly** with mock credentials support
+
+### Authentication Endpoints
+
+All authentication endpoints are available under `/accounts/`:
+
+- **Login**: `/accounts/login/`
+- **Signup**: `/accounts/signup/`
+- **Logout**: `/accounts/logout/`
+- **Password Reset**: `/accounts/password/reset/`
+- **Social Login**: `/accounts/google/login/` and `/accounts/microsoft/login/`
+
+### Google OAuth2 Setup
+
+#### 1. Create Google OAuth2 Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable the Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Configure OAuth consent screen with your domain
+6. Add authorized redirect URIs:
+   - `http://localhost:8001/accounts/google/login/callback/` (development)
+   - `https://yourdomain.com/accounts/google/login/callback/` (production)
+
+#### 2. Configure Environment Variables
+
+Add your Google OAuth2 credentials to your environment files:
+
+**Development (`.env.dev`):**
+```bash
+# Google OAuth2 - Replace with actual credentials
+GOOGLE_OAUTH2_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-actual-client-secret
+```
+
+**Production (`.env.production`):**
+```bash
+# Google OAuth2 - Production credentials
+GOOGLE_OAUTH2_CLIENT_ID=your-production-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-production-client-secret
+```
+
+#### 3. Create Social Application in Django Admin
+
+1. Start your Django server
+2. Go to Django Admin: `http://localhost:8001/admin/`
+3. Navigate to **Social Applications** → **Add**
+4. Configure:
+   - **Provider**: Google
+   - **Name**: Google OAuth2
+   - **Client ID**: Your Google client ID
+   - **Secret Key**: Your Google client secret
+   - **Sites**: Select your site (usually `example.com`)
+
+### Azure AD Setup
+
+#### 1. Register Application in Azure Portal
+
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Navigate to **Azure Active Directory** → **App registrations**
+3. Click **New registration**
+4. Configure:
+   - **Name**: Your app name
+   - **Supported account types**: Choose appropriate option
+   - **Redirect URI**: Web → `http://localhost:8001/accounts/microsoft/login/callback/`
+
+#### 2. Configure App Registration
+
+1. Note the **Application (client) ID**
+2. Go to **Certificates & secrets** → **New client secret**
+3. Note the **client secret value** (copy immediately!)
+4. Go to **API permissions** → **Add a permission**
+5. Add Microsoft Graph permissions: `User.Read`, `email`, `profile`
+
+#### 3. Configure Environment Variables
+
+**Development (`.env.dev`):**
+```bash
+# Azure AD / Microsoft - Replace with actual credentials
+AZURE_AD_CLIENT_ID=your-azure-ad-application-client-id
+AZURE_AD_CLIENT_SECRET=your-azure-ad-client-secret
+```
+
+**Production (`.env.production`):**
+```bash
+# Azure AD / Microsoft - Production credentials
+AZURE_AD_CLIENT_ID=your-production-azure-ad-client-id
+AZURE_AD_CLIENT_SECRET=your-production-azure-ad-client-secret
+```
+
+#### 4. Create Social Application in Django Admin
+
+1. Navigate to **Social Applications** → **Add**
+2. Configure:
+   - **Provider**: Microsoft
+   - **Name**: Azure AD
+   - **Client ID**: Your Azure AD client ID
+   - **Secret Key**: Your Azure AD client secret
+   - **Sites**: Select your site
+
+### Local Development with Mock Credentials
+
+For local development, the boilerplate includes mock/placeholder credentials that won't work for actual authentication but allow the application to start without errors:
+
+```bash
+# These are in .env.dev and .env.test by default
+GOOGLE_OAUTH2_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH2_CLIENT_SECRET=GOCSPX-your-google-client-secret
+
+AZURE_AD_CLIENT_ID=your-azure-ad-application-client-id
+AZURE_AD_CLIENT_SECRET=your-azure-ad-client-secret
+```
+
+### Testing SSO Integration
+
+The boilerplate includes comprehensive tests for SSO functionality:
+
+```bash
+# Run all SSO tests
+docker compose exec django python -m pytest core/tests/test_sso_integration.py -v
+
+# Run specific SSO test categories
+docker compose exec django python -m pytest core/tests/test_sso_integration.py::TestAllauthConfiguration -v
+docker compose exec django python -m pytest core/tests/test_sso_integration.py::TestCustomAdapters -v
+```
+
+### Customizing SSO Behavior
+
+#### Custom Social Account Adapter
+
+The boilerplate includes a custom `CustomSocialAccountAdapter` in `core/adapters.py` that provides:
+
+- **Email-based user matching**: Automatically connects social accounts to existing users with matching emails
+- **Custom user data extraction**: Pulls name, locale, and other data from social providers
+- **Organization scoping placeholder**: Ready for implementing organization assignment logic
+- **Error handling**: User-friendly error messages for authentication failures
+
+#### Organization Assignment
+
+The current implementation includes a placeholder for organization assignment during SSO login. You can customize the `_handle_organization_assignment` method in `core/adapters.py` to:
+
+- Assign users to organizations based on email domain
+- Check for pending invitations
+- Create default personal organizations
+- Implement custom business rules
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **OAuth callback errors**: Ensure redirect URIs in your provider match exactly
+2. **Missing client ID/secret**: Check environment variables are loaded correctly
+3. **Site framework errors**: Ensure `SITE_ID = 1` is set and Site exists in database
+4. **Email verification issues**: Check email backend configuration for production
+
+#### Debug Social Authentication
+
+Enable verbose logging for social authentication:
+
+```python
+# In settings.py
+LOGGING['loggers']['allauth'] = {
+    'handlers': ['console'],
+    'level': 'DEBUG',
+}
+```
+
+#### Test Social App Configuration
+
+```bash
+# Check if social apps are configured correctly
+docker compose exec django python manage.py shell
+>>> from allauth.socialaccount.models import SocialApp
+>>> SocialApp.objects.all()
+>>> # Should show your configured social applications
+```
+
 
 ## Architecture
 
@@ -502,6 +693,173 @@ docker compose logs -f
 - Write both unit and integration tests for new API endpoints
 - Test RBAC permissions for any organization-scoped functionality
 - Include edge cases and error conditions in test coverage
+
+## Frontend Integration
+
+This Django backend is designed to work seamlessly with frontend applications, particularly React-based SPAs. The following features are specifically configured for frontend integration:
+
+### CORS Configuration
+
+CORS (Cross-Origin Resource Sharing) is configured to allow requests from frontend development servers:
+
+```python
+# Allowed origins for CORS requests
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",    # React development server
+    "http://127.0.0.1:3000",   # Alternative React development server 
+    "http://0.0.0.0:3000",     # Docker-based React development
+]
+```
+
+In development mode (`DEBUG=True`), all origins are allowed for convenience. In production, only explicitly listed origins are permitted.
+
+### API Discovery
+
+The API provides discovery endpoints to help frontend applications understand available functionality:
+
+**Base API Root** - `GET /api/`
+```json
+{
+  "message": "Django Backend Boilerplate API",
+  "versions": {
+    "v1": "http://localhost:8001/api/v1/"
+  },
+  "authentication": {
+    "login": "http://localhost:8001/api/v1/auth/token/",
+    "status": "http://localhost:8001/api/v1/auth/status/",
+    "refresh": "http://localhost:8001/api/v1/auth/refresh-token/",
+    "revoke": "http://localhost:8001/api/v1/auth/revoke-token/"
+  },
+  "docs": {
+    "version": "http://localhost:8001/api/v1/version/"
+  }
+}
+```
+
+### Authentication Status
+
+Frontend applications can check authentication status without requiring valid credentials:
+
+**Authentication Status** - `GET /api/v1/auth/status/`
+
+```javascript
+// Example frontend usage
+const checkAuthStatus = async () => {
+  const response = await fetch('/api/v1/auth/status/', {
+    headers: {
+      'Authorization': `Token ${localStorage.getItem('authToken')}`
+    }
+  });
+  const data = await response.json();
+  
+  if (data.authenticated) {
+    console.log('User is authenticated:', data.user);
+  } else {
+    console.log('User is not authenticated');
+  }
+};
+```
+
+### Token-Based Authentication
+
+The API uses token-based authentication suitable for SPAs:
+
+1. **Login**: `POST /api/v1/auth/token/` with email/password
+2. **Check Status**: `GET /api/v1/auth/status/` (returns auth status)
+3. **Refresh Token**: `POST /api/v1/auth/refresh-token/` (generates new token)
+4. **Logout**: `POST /api/v1/auth/revoke-token/` (invalidates token)
+
+### Frontend Development Workflow
+
+1. Start the Django backend: `./docker-cleanup.sh dev`
+2. Backend runs on `http://localhost:8001`
+3. Start your React frontend on `http://localhost:3000`
+4. CORS is automatically configured to allow requests between the two
+
+### Rate Limiting
+
+API requests are rate-limited to prevent abuse:
+- **Anonymous users**: 100 requests per hour
+- **Authenticated users**: 1000 requests per hour
+
+Rate limits can be configured in `settings.py` under `REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']`.
+
+## Security
+
+This Django backend implements comprehensive security measures suitable for production deployment:
+
+### Headers and Content Security
+
+The following security headers are automatically configured:
+
+- **X-Content-Type-Options**: `nosniff` - Prevents MIME type sniffing attacks
+- **X-Frame-Options**: `DENY` - Prevents clickjacking attacks  
+- **X-XSS-Protection**: `1; mode=block` - Enables browser XSS filtering
+- **Content Security Policy**: Basic CSP headers to prevent code injection
+
+### HTTPS and Transport Security
+
+For production deployments (`DEBUG=False`), additional security measures are enforced:
+
+- **HSTS (HTTP Strict Transport Security)**: Forces HTTPS connections for 1 year
+- **SSL Redirect**: Automatically redirects HTTP requests to HTTPS
+- **Secure Cookies**: Session and CSRF cookies marked as secure
+
+### CSRF Protection
+
+CSRF protection is intelligently configured:
+
+- **Session-based requests**: Full CSRF protection enabled
+- **Token-based API requests**: CSRF automatically exempted for API endpoints using `Authorization: Token` headers
+- **Trusted Origins**: Frontend origins whitelisted for CSRF tokens
+
+### Authentication Security
+
+- **Token Authentication**: Secure stateless authentication suitable for SPAs
+- **Password Validation**: Django's built-in password validators enforce strong passwords
+- **Inactive User Protection**: Inactive users cannot authenticate
+- **Audit Trails**: All user actions tracked with timestamps and user attribution
+
+### Database Security
+
+- **UUID Primary Keys**: Prevents enumeration attacks and provides collision-resistant identifiers
+- **Soft Delete**: Safe data removal with recovery capabilities
+- **PII Compliance**: Built-in tracking of personally identifiable information fields
+- **Organization Scoping**: Multi-tenant data isolation prevents cross-organization data access
+
+### Production Security Checklist
+
+Before deploying to production:
+
+1. **Change Default Secret Key**: Update `SECRET_KEY` in `.env.production`
+2. **Set Strong Database Password**: Update `POSTGRES_PASSWORD`
+3. **Configure Allowed Hosts**: Set proper domain names in `ALLOWED_HOSTS`
+4. **Review CORS Origins**: Remove development origins from `CORS_ALLOWED_ORIGINS`
+5. **Enable HTTPS**: Configure SSL certificates and reverse proxy
+6. **Monitor Rate Limits**: Adjust throttling rates based on expected traffic
+7. **Review CSP Policies**: Customize Content Security Policy for your frontend assets
+
+### Security Monitoring
+
+The structured logging system captures security-relevant events:
+
+```json
+{
+  "timestamp": "2023-01-01T00:00:00Z",
+  "level": "WARNING", 
+  "event": "authentication_failed",
+  "request_id": "abc123",
+  "remote_addr": "192.168.1.100",
+  "user_agent": "Mozilla/5.0...",
+  "message": "Invalid token authentication attempt"
+}
+```
+
+Monitor logs for:
+- Failed authentication attempts
+- Rate limit violations  
+- CSRF token mismatches
+- Suspicious request patterns
 
 ## License
 
