@@ -9,7 +9,6 @@ import logging
 from typing import Dict, Any
 
 from rest_framework import status
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -17,7 +16,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import HttpResponse, Http404
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.views import APIView
+from rest_framework import viewsets
 from api.v1.serializers.storage import (
     FileUploadSerializer,
     FileInfoSerializer,
@@ -30,7 +29,7 @@ from constants.roles import OrgRole
 logger = logging.getLogger(__name__)
 
 
-class StorageAPIView(APIView):
+class StorageAPIView(viewsets.ViewSet):
     """
     API view for file storage operations with RBAC enforcement.
     
@@ -79,7 +78,6 @@ class StorageAPIView(APIView):
             
         return StorageService(user=self.request.user, organization=organization)
 
-    @action(detail=False, methods=['post'], url_path='upload', url_name='upload')
     def upload_file(self, request):
         """
         Upload a file to organization storage.
@@ -141,7 +139,6 @@ class StorageAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='download/(?P<file_path>.*)', url_name='download')
     def download_file(self, request, file_path=None):
         """
         Get a signed URL for downloading a file.
@@ -200,7 +197,6 @@ class StorageAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['delete'], url_path='delete/(?P<file_path>.*)', url_name='delete')
     def delete_file(self, request, file_path=None):
         """
         Delete a file from storage.
@@ -251,7 +247,6 @@ class StorageAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='list', url_name='list')
     def list_files(self, request):
         """
         List files in a directory.
@@ -294,7 +289,6 @@ class StorageAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='info/(?P<file_path>.*)', url_name='info')
     def get_file_info(self, request, file_path=None):
         """
         Get detailed information about a file.
@@ -344,7 +338,6 @@ class StorageAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], url_path='usage', url_name='usage')
     def get_storage_usage(self, request):
         """
         Get storage usage statistics for the organization.
