@@ -78,7 +78,7 @@ class TestStorageAPI:
             content = self.test_file_content
         return SimpleUploadedFile(name, content, content_type="text/plain")
 
-    @patch('core.storage.GCSStorage')
+    @patch('core.services.storage.OrganizationScopedGCSStorage')
     def test_upload_file_success_admin(self, mock_storage_class):
         """Test successful file upload as admin."""
         # Mock storage
@@ -101,7 +101,7 @@ class TestStorageAPI:
         assert 'file' in response.data
         assert response.data['message'] == 'File uploaded successfully'
 
-    @patch('core.storage.GCSStorage')
+    @patch('core.services.storage.OrganizationScopedGCSStorage')
     def test_upload_file_success_manager(self, mock_storage_class):
         """Test successful file upload as manager."""
         # Mock storage

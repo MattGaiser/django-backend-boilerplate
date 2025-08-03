@@ -263,7 +263,7 @@ class TestOrganizationScopedGCSStorage:
         
         assert storage.organization_id == org_id
 
-    @patch('core.middleware.get_current_user')
+    @patch('core.signals.get_current_user')
     def test_get_current_organization_id_from_user(self, mock_get_user):
         """Test getting organization ID from current user."""
         mock_get_user.return_value = self.user
@@ -273,7 +273,7 @@ class TestOrganizationScopedGCSStorage:
         
         assert org_id == str(self.org.id)
 
-    @patch('core.middleware.get_current_user')
+    @patch('core.signals.get_current_user')
     def test_get_current_organization_id_no_user(self, mock_get_user):
         """Test getting organization ID with no current user."""
         mock_get_user.return_value = None

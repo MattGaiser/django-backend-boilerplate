@@ -337,7 +337,7 @@ class OrganizationScopedGCSStorage(GCSStorage):
         Returns:
             Organization ID string or None
         """
-        from core.middleware import get_current_user
+        from core.signals import get_current_user
         
         user = get_current_user()
         if user and user.is_authenticated:
