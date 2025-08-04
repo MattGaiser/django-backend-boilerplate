@@ -7,7 +7,8 @@ of the conftest.py fixtures for FactoryBoy factories.
 
 import pytest
 
-from core.models import Organization, OrganizationMembership, OrgRole, Project, User
+from core.models import Organization, OrganizationMembership, Project, User
+from constants.roles import OrgRole
 
 
 @pytest.mark.django_db
@@ -51,7 +52,7 @@ def test_project_factory_fixture(project_factory):
 
     assert project.id is not None
     assert isinstance(project, Project)
-    assert project.name is not None
+    assert project.title is not None
     assert project.organization is not None
 
 
@@ -132,7 +133,7 @@ def test_complex_scenario_with_fixtures(
     )
 
     # Create project
-    project = project_factory.create(organization=org, name="Test Project")
+    project = project_factory.create(organization=org, title="Test Project")
 
     # Verify relationships
     assert org.user_memberships.count() == 2
