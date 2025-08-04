@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock
 from io import BytesIO
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework import status
@@ -251,7 +252,7 @@ class TestStorageAPI:
         # Mock storage service to raise ValidationError
         mock_service = MagicMock()
         mock_service_class.return_value = mock_service
-        mock_service.get_file_url.side_effect = ValueError("File not found")
+        mock_service.get_file_url.side_effect = ValidationError("File not found")
         
         self.client.force_authenticate(user=self.viewer_user)
         
@@ -259,7 +260,7 @@ class TestStorageAPI:
         
         response = self.client.get(url)
         
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @patch('core.services.storage.StorageService')
     def test_delete_file_success_admin(self, mock_service_class):
