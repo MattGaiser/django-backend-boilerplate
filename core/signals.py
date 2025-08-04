@@ -146,10 +146,31 @@ def validate_pii_fields(sender, **kwargs):
     This signal checks for common PII field names and ensures they are declared
     in the model's pii_fields class attribute for compliance tracking.
     """
-    # Skip during migrations
+    # Skip during migrations - improved detection
+    import sys
+    
+    # Check if we're running a migration command
+    if len(sys.argv) > 1 and sys.argv[1] in ['migrate', 'makemigrations']:
+        return
+    
+    # Additional migration context checks
     try:
         if connection.in_atomic_block or "migrate" in connection.queries_log:
             return
+    except:
+        pass
+    
+    # Check for migration-related environment variables or thread locals
+    try:
+        # Django sets this during migrations in some contexts
+        from django.db import transaction
+        if transaction.get_autocommit():
+            # Additional check for migration context via stack inspection
+            import traceback
+            stack = traceback.extract_stack()
+            for frame in stack:
+                if 'migrate' in frame.filename or 'migration' in frame.filename.lower():
+                    return
     except:
         pass
 
