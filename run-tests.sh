@@ -21,6 +21,7 @@ NC='\033[0m' # No Color
 # Configuration
 VERBOSE=false
 FAST_MODE=false
+COVERAGE_REPORT=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Parse command line arguments
@@ -34,20 +35,26 @@ while [[ $# -gt 0 ]]; do
             FAST_MODE=true
             shift
             ;;
+        --coverage)
+            COVERAGE_REPORT=true
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--help] [--verbose] [--fast]"
+            echo "Usage: $0 [--help] [--verbose] [--fast] [--coverage]"
             echo ""
             echo "Single command to run all tests within Docker containers."
             echo ""
             echo "Options:"
             echo "  --verbose   Run tests with verbose output"
             echo "  --fast      Skip slower services for faster test runs"  
+            echo "  --coverage  Generate detailed HTML coverage report"
             echo "  --help      Show this help message"
             echo ""
             echo "This script will:"
             echo "  1. Use the existing docker-compose.test.yml configuration"
             echo "  2. Run pytest to execute all tests (Django + pytest tests)"
-            echo "  3. Clean up containers after testing"
+            echo "  3. Generate code coverage reports (always shows terminal coverage)"
+            echo "  4. Clean up containers after testing"
             exit 0
             ;;
         *)
@@ -151,17 +158,25 @@ main() {
     # Run tests using the existing test configuration
     print_step "Starting test environment and running tests..."
     
+    # Build coverage command based on options
+    if [ "$COVERAGE_REPORT" = true ]; then
+        COVERAGE_CMD="--cov-report=html:htmlcov"
+        print_info "HTML coverage report will be generated in htmlcov/ directory"
+    else
+        COVERAGE_CMD=""
+    fi
+    
     # Use the existing test configuration with environment variables from .env.test
     if [ "$VERBOSE" = true ]; then
-        print_info "Running tests with verbose output..."
-        if docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm django; then
+        print_info "Running tests with verbose output and coverage reporting..."
+        if docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm -e COVERAGE_HTML="$COVERAGE_CMD" django; then
             test_exit_code=0
         else
             test_exit_code=$?
         fi
     else
-        print_info "Running tests (this may take a few minutes)..."
-        if docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm django 2>&1 | grep -E "(PASSED|FAILED|ERROR|OK|test session starts|collected|warnings summary)" || docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm django >/dev/null 2>&1; then
+        print_info "Running tests with coverage reporting (this may take a few minutes)..."
+        if docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm -e COVERAGE_HTML="$COVERAGE_CMD" django 2>&1 | grep -E "(PASSED|FAILED|ERROR|OK|test session starts|collected|warnings summary|Coverage|Missing)" || docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm -e COVERAGE_HTML="$COVERAGE_CMD" django >/dev/null 2>&1; then
             test_exit_code=0
         else
             test_exit_code=$?
@@ -177,6 +192,10 @@ main() {
         print_status "$GREEN" "✅ Test suite completed successfully"
         print_info "All Django and pytest tests have passed"
         print_info "Tests were run in Docker containers with PostgreSQL database"
+        print_info "Code coverage report displayed above"
+        if [ "$COVERAGE_REPORT" = true ]; then
+            print_info "HTML coverage report available in htmlcov/index.html"
+        fi
     else
         print_error "Some tests failed"
         echo ""
