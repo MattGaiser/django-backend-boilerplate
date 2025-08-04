@@ -168,7 +168,7 @@ class TestProjectEndpoints:
         response = self.client.post(url, data, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data['name'] == data['name']
+        assert response.data['title'] == data['title']
         assert 'id' in response.data
 
 

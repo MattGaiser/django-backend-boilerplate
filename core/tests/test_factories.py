@@ -274,7 +274,7 @@ class TestFactoryIntegration(TestCase):
 
         # Create projects
         active_project = ProjectFactory.create(
-            organization=org, status=Project.StatusChoices.ACTIVE
+            organization=org, status=Project.StatusChoices.IN_PROGRESS
         )
         completed_project = ProjectFactory.create(
             organization=org, status=Project.StatusChoices.COMPLETED
