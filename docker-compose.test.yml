@@ -12,10 +12,20 @@ services:
     environment:
       - DEBUG=false
       - DJANGO_SETTINGS_MODULE=DjangoBoilerplate.settings
+    depends_on:
+      fake-gcs-server:
+        condition: service_started
     command: >
       sh -c "pip install -r requirements-dev.txt &&
              python manage.py migrate &&
              python -m pytest -v --tb=short --reuse-db --ds=DjangoBoilerplate.settings"
+
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:1.49.0
+    command: -scheme http -host 0.0.0.0 -port 9090
+    volumes:
+      - type: tmpfs
+        target: /data
 
   prefect-server:
     env_file:
