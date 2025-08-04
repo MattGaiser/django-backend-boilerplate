@@ -15,38 +15,8 @@ class Migration(migrations.Migration):
             model_name='tag',
             name='unique_tag_per_object',
         ),
-        migrations.RemoveIndex(
-            model_name='evidencechunk',
-            name='core_eviden_organiz_b8553e_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='evidencefact',
-            name='core_eviden_organiz_1696a0_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='evidencefact',
-            name='core_eviden_extract_885705_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='evidenceinsight',
-            name='core_eviden_organiz_6361d6_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='evidencesource',
-            name='core_eviden_organiz_24bb05_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='evidencesource',
-            name='core_eviden_upload__d03380_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='project',
-            name='core_projec_name_54f204_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='recommendation',
-            name='core_recomm_organiz_b85ced_idx',
-        ),
+        # Note: Index removals already done in migration 0011
+        # Skipping duplicate RemoveIndex operations
         migrations.RemoveIndex(
             model_name='tag',
             name='core_tag_organiz_9fed11_idx',

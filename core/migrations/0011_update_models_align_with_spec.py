@@ -17,6 +17,28 @@ class Migration(migrations.Migration):
             name='core_projec_name_54f204_idx',
         ),
         
+        # Remove indexes that reference 'project' field before removing them
+        migrations.RemoveIndex(
+            model_name='evidenceinsight',
+            name='core_eviden_organiz_6361d6_idx',
+        ),
+        migrations.RemoveIndex(
+            model_name='evidencesource',
+            name='core_eviden_organiz_24bb05_idx',
+        ),
+        migrations.RemoveIndex(
+            model_name='evidencefact',
+            name='core_eviden_organiz_1696a0_idx',
+        ),
+        migrations.RemoveIndex(
+            model_name='evidencechunk',
+            name='core_eviden_organiz_b8553e_idx',
+        ),
+        migrations.RemoveIndex(
+            model_name='recommendation',
+            name='core_recomm_organiz_b85ced_idx',
+        ),
+        
         # Update Project model fields
         migrations.RenameField(
             model_name='project',
@@ -68,10 +90,15 @@ class Migration(migrations.Migration):
             old_name='name',
             new_name='title',
         ),
-        migrations.RenameField(
+        # Remove content field since notes already exists from migration 0010
+        migrations.RemoveField(
             model_name='evidencesource',
-            old_name='content',
-            new_name='notes',
+            name='content',
+        ),
+        # Remove index on upload_date before removing the field
+        migrations.RemoveIndex(
+            model_name='evidencesource',
+            name='core_eviden_upload__d03380_idx',
         ),
         migrations.RemoveField(
             model_name='evidencesource',
@@ -132,6 +159,11 @@ class Migration(migrations.Migration):
         ),
         
         # Update EvidenceFact model
+        # Remove indexes before removing fields they reference
+        migrations.RemoveIndex(
+            model_name='evidencefact',
+            name='core_eviden_extract_885705_idx',
+        ),
         migrations.RemoveField(
             model_name='evidencefact',
             name='project',
