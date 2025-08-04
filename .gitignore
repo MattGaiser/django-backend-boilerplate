@@ -55,6 +55,11 @@ Dockerfile.test
 # Version file (generated at build time)
 version.json
 
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
 # Terraform files
 terraform/**/.terraform/
 terraform/**/.terraform.lock.hcl
