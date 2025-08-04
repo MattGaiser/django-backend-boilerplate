@@ -71,7 +71,8 @@ class TestPIIValidationSignal(TestCase):
         # In practice, this is tested by the fact that migrations ran successfully
         self.assertTrue(True)  # Placeholder assertion
 
-    def test_basemodel_has_empty_pii_fields(self):
-        """Test that BaseModel has empty pii_fields by default."""
-        self.assertTrue(hasattr(BaseModel, "pii_fields"))
-        self.assertEqual(BaseModel.pii_fields, [])
+    def test_basemodel_has_no_pii_fields(self):
+        """Test that BaseModel does not have pii_fields (abstract base)."""
+        # BaseModel is abstract and doesn't need pii_fields
+        # Concrete models should define their own pii_fields
+        self.assertFalse(hasattr(BaseModel, "pii_fields"))
