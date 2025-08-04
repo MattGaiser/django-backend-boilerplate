@@ -50,10 +50,16 @@ class GCSStorage(Storage):
                 from google.cloud import storage
                 
                 if self.use_emulator:
-                    # For emulator, create client without authentication
+                    # For emulator, ensure the STORAGE_EMULATOR_HOST environment variable is set
+                    api_endpoint = self.client_options.get('api_endpoint')
+                    if api_endpoint:
+                        # Remove http:// prefix for the STORAGE_EMULATOR_HOST env var
+                        emulator_host = api_endpoint.replace('http://', '').replace('https://', '')
+                        os.environ['STORAGE_EMULATOR_HOST'] = emulator_host
+                        logger.info(f"Set STORAGE_EMULATOR_HOST to: {emulator_host}")
+                    
+                    # Create client without authentication for emulator
                     self._client = storage.Client.create_anonymous_client()
-                    if self.client_options.get('api_endpoint'):
-                        self._client._http.base_url = self.client_options['api_endpoint']
                 else:
                     # For production, use default authentication
                     self._client = storage.Client(**self.client_options)
