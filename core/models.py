@@ -256,6 +256,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     class Meta:
         verbose_name = _("User")
         verbose_name_plural = _("Users")
+        ordering = ["-date_joined", "email"]  # Order by newest first, then by email
 
     email = models.EmailField(
         unique=True, help_text=_("Email address used for authentication")
