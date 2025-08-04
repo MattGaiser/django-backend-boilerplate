@@ -14,7 +14,8 @@ from core.factories import (
     ProjectFactory,
     UserFactory,
 )
-from core.models import Organization, OrganizationMembership, OrgRole, Project, User
+from core.models import Organization, OrganizationMembership, Project, User
+from constants.roles import OrgRole
 
 
 class TestUserFactory(TestCase):
@@ -203,18 +204,15 @@ class TestProjectFactory(TestCase):
         self.assertIsInstance(project, Project)
 
         # Verify required fields are set
-        self.assertIsNotNone(project.name)
+        self.assertIsNotNone(project.title)
         self.assertIsNotNone(project.organization)
         self.assertIn(
             project.status, [choice[0] for choice in Project.StatusChoices.choices]
         )
 
-        # Verify default values
-        self.assertTrue(project.is_active)
-
         # Verify project can be retrieved from database
         db_project = Project.objects.get(id=project.id)
-        self.assertEqual(db_project.name, project.name)
+        self.assertEqual(db_project.title, project.title)
 
     def test_project_factory_creates_related_organization(self):
         """Test that ProjectFactory creates related Organization."""
@@ -236,15 +234,13 @@ class TestProjectFactory(TestCase):
         """Test creating an active project."""
         project = ProjectFactory.create_active_project()
 
-        self.assertEqual(project.status, Project.StatusChoices.ACTIVE)
-        self.assertTrue(project.is_active)
+        self.assertEqual(project.status, Project.StatusChoices.IN_PROGRESS)
 
     def test_project_factory_completed_project(self):
         """Test creating a completed project."""
         project = ProjectFactory.create_completed_project()
 
         self.assertEqual(project.status, Project.StatusChoices.COMPLETED)
-        self.assertFalse(project.is_active)
 
     def test_project_factory_batch_creation(self):
         """Test creating multiple projects with ProjectFactory."""

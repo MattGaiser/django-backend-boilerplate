@@ -77,9 +77,9 @@ class InternationalizationTestCase(TestCase):
             self.assertEqual(str(admin_display), "Admin")
 
             # Test Project status choices
-            planning_choice = Project.StatusChoices.PLANNING
-            planning_display = dict(Project.StatusChoices.choices)[planning_choice]
-            self.assertEqual(str(planning_display), "Planning")
+            in_progress_choice = Project.StatusChoices.IN_PROGRESS
+            in_progress_display = dict(Project.StatusChoices.choices)[in_progress_choice]
+            self.assertEqual(str(in_progress_display), "In Progress")
 
     def test_language_switching(self):
         """Test that language switching works correctly."""

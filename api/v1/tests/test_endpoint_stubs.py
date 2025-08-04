@@ -155,13 +155,13 @@ class TestProjectEndpoints:
         assert 'results' in response.data
         assert len(response.data['results']) >= 1
         assert 'id' in response.data['results'][0]
-        assert 'name' in response.data['results'][0]
+        assert 'title' in response.data['results'][0]
     
     def test_create_project(self):
         """Test creating project."""
         url = reverse('projects-list')
         data = {
-            "name": "New Test Project",
+            "title": "New Test Project",
             "description": "A test project"
         }
         
@@ -396,9 +396,9 @@ class TestTagEndpoints:
         """Test creating tag summary."""
         url = reverse('tags-list')
         data = {
-            "name": "test-tag",
+            "title": "test-tag",
+            "definition": "A test tag",
             "category": "test",
-            "description": "A test tag",
             "color": "#FF0000",
             "project_id": str(self.project.id)
         }
@@ -406,7 +406,7 @@ class TestTagEndpoints:
         response = self.client.post(url, data, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data['name'] == data['name']
+        assert response.data['title'] == data['title']
 
 
 @pytest.mark.django_db

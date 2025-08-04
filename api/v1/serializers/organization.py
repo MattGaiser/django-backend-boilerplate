@@ -133,11 +133,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             "id",
-            "name",
+            "title",
             "description",
             "status",
             "status_display",
-            "is_active",
             "start_date",
             "end_date",
             "organization",
@@ -156,22 +155,22 @@ class ProjectSerializer(serializers.ModelSerializer):
             "created_by",
         ]
     
-    def validate_name(self, value):
-        """Validate name field."""
+    def validate_title(self, value):
+        """Validate title field."""
         if not value or not value.strip():
-            raise serializers.ValidationError(_("Name cannot be empty."))
+            raise serializers.ValidationError(_("Title cannot be empty."))
         
         # Check for uniqueness within organization
         organization = self.context.get('organization')
         if organization:
             existing = Project.objects.filter(
                 organization=organization,
-                name__iexact=value.strip()
+                title__iexact=value.strip()
             ).exclude(pk=self.instance.pk if self.instance else None)
             
             if existing.exists():
                 raise serializers.ValidationError(
-                    _("A project with this name already exists in the organization.")
+                    _("A project with this title already exists in the organization.")
                 )
         
         return value.strip()
@@ -184,10 +183,9 @@ class CreateProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             "id",
-            "name",
+            "title",
             "description",
             "status",
-            "is_active",
             "start_date",
             "end_date",
             "organization",
