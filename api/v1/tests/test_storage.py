@@ -79,7 +79,7 @@ class TestStorageAPI:
             content = self.test_file_content
         return SimpleUploadedFile(name, content, content_type="text/plain")
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_upload_file_success_admin(self, mock_storage_service_class):
         """Test successful file upload as admin."""
         # Mock storage service
@@ -108,7 +108,7 @@ class TestStorageAPI:
         assert 'file' in response.data
         assert response.data['message'] == 'File uploaded successfully'
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_upload_file_success_manager(self, mock_storage_service_class):
         """Test successful file upload as manager."""
         # Mock storage service
@@ -228,7 +228,7 @@ class TestStorageAPI:
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_download_file_success(self, mock_service_class):
         """Test successful file download."""
         # Mock storage service
@@ -246,7 +246,7 @@ class TestStorageAPI:
         assert 'download_url' in response.data
         assert response.data['download_url'] == "https://signed-url.com/file"
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_download_file_not_found(self, mock_service_class):
         """Test download of non-existent file."""
         # Mock storage service to raise ValidationError
@@ -262,7 +262,7 @@ class TestStorageAPI:
         
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_delete_file_success_admin(self, mock_service_class):
         """Test successful file deletion as admin."""
         # Mock storage service
@@ -288,7 +288,7 @@ class TestStorageAPI:
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_list_files_success(self, mock_service_class):
         """Test successful file listing."""
         # Mock storage service
@@ -321,7 +321,7 @@ class TestStorageAPI:
         assert 'files' in response.data
         assert len(response.data['files']) == 2
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_get_file_info_success(self, mock_service_class):
         """Test successful file info retrieval."""
         # Mock storage service
@@ -346,7 +346,7 @@ class TestStorageAPI:
         assert response.data['path'] == 'test/file.txt'
         assert response.data['size'] == 100
 
-    @patch('core.services.storage.StorageService')
+    @patch('api.v1.views.storage.StorageService')
     def test_get_storage_usage_success_admin(self, mock_service_class):
         """Test successful storage usage retrieval as admin."""
         # Mock storage service
