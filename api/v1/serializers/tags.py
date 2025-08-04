@@ -2,6 +2,7 @@
 Serializers for tag-related models.
 
 Provides serialization and validation for Tags with proper organization scoping.
+Based on the Tags Specification for global tag management.
 """
 
 from rest_framework import serializers
@@ -13,6 +14,10 @@ from core.models import Tag
 class TagSerializer(serializers.ModelSerializer):
     """
     Serializer for Tag with proper validation and organization scoping.
+    
+    Follows Tags Specification for global tag management:
+    - Title: The tag label
+    - Definition (optional): Describes the intended use or scope of the tag
     """
     
     organization_name = serializers.CharField(
@@ -21,22 +26,14 @@ class TagSerializer(serializers.ModelSerializer):
         help_text=_("Name of the organization"),
     )
     
-    content_type_name = serializers.CharField(
-        source="content_type.model",
-        read_only=True,
-        help_text=_("Type of object this tag is attached to"),
-    )
-    
     class Meta:
         model = Tag
         fields = [
             "id",
-            "name",
+            "title",
+            "definition",
             "organization",
             "organization_name",
-            "content_type",
-            "content_type_name",
-            "object_id",
             "created_at",
             "updated_at",
             "created_by",
@@ -45,16 +42,15 @@ class TagSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "organization_name",
-            "content_type_name",
             "created_at",
             "updated_at",
             "created_by",
         ]
     
-    def validate_name(self, value):
-        """Validate tag name."""
+    def validate_title(self, value):
+        """Validate tag title."""
         if not value or not value.strip():
-            raise serializers.ValidationError(_("Tag name cannot be empty."))
+            raise serializers.ValidationError(_("Tag title cannot be empty."))
         return value.strip()
 
 
@@ -67,7 +63,6 @@ class CreateTagSerializer(TagSerializer):
             "id",
             "organization",
             "organization_name",
-            "content_type_name",
             "created_at",
             "updated_at",
             "created_by",
@@ -77,20 +72,22 @@ class CreateTagSerializer(TagSerializer):
 class TagSummarySerializer(serializers.Serializer):
     """
     Serializer for tag summary information (used in tag listing endpoints).
+    
+    Provides a comprehensive view of tags with usage statistics and metadata.
     """
     
-    name = serializers.CharField(
-        help_text=_("Name of the tag")
+    title = serializers.CharField(
+        help_text=_("Title of the tag")
+    )
+    
+    definition = serializers.CharField(
+        allow_blank=True,
+        help_text=_("Definition of the tag's intended use or scope")
     )
     
     category = serializers.CharField(
         allow_blank=True,
         help_text=_("Category of the tag")
-    )
-    
-    description = serializers.CharField(
-        allow_blank=True,
-        help_text=_("Description of the tag")
     )
     
     color = serializers.CharField(
@@ -138,9 +135,9 @@ class CreateTagSummarySerializer(TagSummarySerializer):
     
     class Meta:
         fields = [
-            "name",
+            "title",
+            "definition",
             "category",
-            "description",
             "color",
             "status",
             "project_id",
@@ -150,21 +147,21 @@ class CreateTagSummarySerializer(TagSummarySerializer):
 class UpdateTagSummarySerializer(serializers.Serializer):
     """Serializer for updating tag summaries."""
     
-    name = serializers.CharField(
+    title = serializers.CharField(
         required=False,
-        help_text=_("Name of the tag")
+        help_text=_("Title of the tag")
+    )
+    
+    definition = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text=_("Definition of the tag's intended use or scope")
     )
     
     category = serializers.CharField(
         required=False,
         allow_blank=True,
         help_text=_("Category of the tag")
-    )
-    
-    description = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        help_text=_("Description of the tag")
     )
     
     color = serializers.CharField(

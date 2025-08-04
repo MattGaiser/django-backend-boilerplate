@@ -2,13 +2,13 @@
 ViewSets for tag-related models.
 
 Provides CRUD operations for Tags with proper organization scoping and RBAC.
+Based on the Tags Specification for global tag management.
 """
 
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
-from django.contrib.contenttypes.models import ContentType
 
 from api.v1.views.base import BaseViewSet, BaseReadOnlyViewSet
 from api.v1.serializers.tags import (
@@ -27,6 +27,7 @@ class TagViewSet(BaseViewSet):
     ViewSet for Tag management.
     
     Provides CRUD operations with proper organization scoping and RBAC.
+    Tags are global across the organization account and shared across all data types.
     """
     
     queryset = Tag.objects.all()
@@ -34,7 +35,7 @@ class TagViewSet(BaseViewSet):
     required_roles = [OrgRole.ADMIN, OrgRole.MANAGER, OrgRole.EDITOR]
     
     def get_queryset(self):
-        """Filter queryset by user's organizations and project."""
+        """Filter queryset by user's organizations."""
         if not self.request.user.is_authenticated:
             return Tag.objects.none()
         
@@ -45,15 +46,7 @@ class TagViewSet(BaseViewSet):
         
         queryset = Tag.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'content_type', 'created_by')
-        
-        # Filter by project if specified
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            # For project-scoped tags, we need to filter by tags attached to objects in that project
-            # This is complex with generic foreign keys, so for now we'll return all org tags
-            # TODO: Implement proper project-scoped tag filtering
-            pass
+        ).select_related('organization', 'created_by')
         
         # Order by created_at desc (matching Supabase pattern)
         return queryset.order_by('-created_at')
@@ -69,6 +62,14 @@ class TagViewSet(BaseViewSet):
         context = super().get_serializer_context()
         context['organization'] = self.get_organization()
         return context
+
+    def perform_create(self, serializer):
+        """Set organization and created_by when creating a tag."""
+        organization = self.get_organization()
+        serializer.save(
+            organization=organization,
+            created_by=self.request.user
+        )
 
 
 class TagSummaryViewSet(BaseViewSet):
@@ -94,12 +95,13 @@ class TagSummaryViewSet(BaseViewSet):
         
         queryset = Tag.objects.filter(
             organization_id__in=user_org_ids
-        ).select_related('organization', 'content_type', 'created_by')
+        ).select_related('organization', 'created_by')
         
         # Filter by project if specified
         project_id = self.request.query_params.get('project_id')
         if project_id:
             # TODO: Implement proper project-scoped tag filtering
+            # Since tags are now global, we could filter tags that are used by objects in that project
             pass
         
         return queryset.order_by('-created_at')
@@ -128,9 +130,9 @@ class TagSummaryViewSet(BaseViewSet):
         stub_tags = [
             {
                 "id": "tag-1-uuid",
-                "name": "communication",
+                "title": "communication",
+                "definition": "Communication related insights and facts",
                 "category": "theme",
-                "description": "Communication related insights and facts",
                 "color": "#3B82F6",
                 "status": "approved",
                 "usage_count": 15,
@@ -141,9 +143,9 @@ class TagSummaryViewSet(BaseViewSet):
             },
             {
                 "id": "tag-2-uuid", 
-                "name": "process-improvement",
+                "title": "process-improvement",
+                "definition": "Process improvement opportunities",
                 "category": "action",
-                "description": "Process improvement opportunities",
                 "color": "#10B981",
                 "status": "approved",
                 "usage_count": 8,
@@ -154,9 +156,9 @@ class TagSummaryViewSet(BaseViewSet):
             },
             {
                 "id": "tag-3-uuid",
-                "name": "user-feedback",
+                "title": "user-feedback",
+                "definition": "Direct feedback from users",
                 "category": "source",
-                "description": "Direct feedback from users",
                 "color": "#F59E0B",
                 "status": "pending",
                 "usage_count": 3,
@@ -182,9 +184,9 @@ class TagSummaryViewSet(BaseViewSet):
         # For now, return stub created tag
         created_tag = {
             "id": "new-tag-uuid",
-            "name": serializer.validated_data['name'],
+            "title": serializer.validated_data['title'],
+            "definition": serializer.validated_data.get('definition', ''),
             "category": serializer.validated_data.get('category', ''),
-            "description": serializer.validated_data.get('description', ''),
             "color": serializer.validated_data.get('color', '#6B7280'),
             "status": serializer.validated_data.get('status', 'pending'),
             "usage_count": 0,
@@ -210,9 +212,9 @@ class TagSummaryViewSet(BaseViewSet):
         
         updated_tag = {
             "id": kwargs.get('pk'),
-            "name": serializer.validated_data.get('name', 'Updated Tag'),
+            "title": serializer.validated_data.get('title', 'Updated Tag'),
+            "definition": serializer.validated_data.get('definition', 'Updated definition'),
             "category": serializer.validated_data.get('category', 'updated'),
-            "description": serializer.validated_data.get('description', 'Updated description'),
             "color": serializer.validated_data.get('color', '#6B7280'),
             "status": serializer.validated_data.get('status', 'approved'),
             "usage_count": 5,
@@ -293,8 +295,8 @@ class PublicTagViewSet(BaseReadOnlyViewSet):
         class PublicTagSerializer(serializers.ModelSerializer):
             class Meta:
                 model = Tag
-                fields = ["id", "name", "created_at"]
-                read_only_fields = ["id", "name", "created_at"]
+                fields = ["id", "title", "definition", "created_at"]
+                read_only_fields = ["id", "title", "definition", "created_at"]
         
         return PublicTagSerializer
     

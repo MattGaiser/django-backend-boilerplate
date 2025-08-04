@@ -307,7 +307,13 @@ class PublicProjectViewSet(BaseReadOnlyViewSet):
     Provides limited information accessible to any org member.
     """
     
-    queryset = Project.objects.filter(is_active=True)
+    queryset = Project.objects.filter(
+        status__in=[
+            Project.StatusChoices.NOT_STARTED,
+            Project.StatusChoices.IN_PROGRESS,
+            Project.StatusChoices.COMPLETED
+        ]
+    )
     required_roles = [OrgRole.ADMIN, OrgRole.MANAGER, OrgRole.EDITOR, OrgRole.VIEWER]
     
     def get_serializer_class(self):

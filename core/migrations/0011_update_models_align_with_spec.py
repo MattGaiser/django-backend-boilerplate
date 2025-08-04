@@ -11,6 +11,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Remove index that references is_active before removing the field
+        migrations.RemoveIndex(
+            model_name='project',
+            name='core_projec_name_54f204_idx',
+        ),
+        
         # Update Project model fields
         migrations.RenameField(
             model_name='project',

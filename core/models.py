@@ -493,28 +493,25 @@ class TaggableMixin(models.Model):
     """
     Abstract mixin that adds tagging functionality to any model.
 
-    This mixin provides a generic relation to the Tag model and
+    This mixin provides a ManyToMany relationship to the Tag model and
     helper methods for managing tags on the model instance.
     """
 
     class Meta:
         abstract = True
 
-    tags = GenericRelation(
-        "core.Tag",
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="tagged_%(class)s",
-    )
+    # Note: tags field is added to each concrete model that uses this mixin
+    # since we can't have a generic M2M field in an abstract base class
 
-    def add_tag(self, name, organization=None, created_by=None):
+    def add_tag(self, title, organization=None, created_by=None, definition=""):
         """
         Add a tag to this object.
 
         Args:
-            name (str): Name of the tag
+            title (str): Title of the tag
             organization: Organization for the tag (uses self.organization if available)
             created_by: User who created the tag
+            definition (str): Optional definition for the tag
 
         Returns:
             Tag: The created or existing tag
@@ -537,20 +534,23 @@ class TaggableMixin(models.Model):
         from core.models import Tag
 
         tag, created = Tag.objects.get_or_create(
-            name=name.strip(),
+            title=title.strip(),
             organization=organization,
-            content_type=ContentType.objects.get_for_model(self),
-            object_id=self.id,
-            defaults={"created_by": created_by},
+            defaults={"created_by": created_by, "definition": definition},
         )
+        
+        # Add the tag to this object's tags if not already added
+        if hasattr(self, 'tags'):
+            self.tags.add(tag)
+        
         return tag
 
-    def remove_tag(self, name, organization=None):
+    def remove_tag(self, title, organization=None):
         """
         Remove a tag from this object.
 
         Args:
-            name (str): Name of the tag to remove
+            title (str): Title of the tag to remove
             organization: Organization for the tag (uses self.organization if available)
 
         Returns:
@@ -571,31 +571,33 @@ class TaggableMixin(models.Model):
             from core.models import Tag
 
             tag = Tag.objects.get(
-                name=name.strip(),
+                title=title.strip(),
                 organization=organization,
-                content_type=ContentType.objects.get_for_model(self),
-                object_id=self.id,
             )
-            tag.delete()
+            # Remove the tag from this object's tags if it exists
+            if hasattr(self, 'tags'):
+                self.tags.remove(tag)
             return True
         except Tag.DoesNotExist:
             return False
 
     def get_tag_names(self):
         """
-        Get all tag names for this object.
+        Get all tag titles for this object.
 
         Returns:
-            QuerySet: QuerySet of tag names
+            QuerySet: QuerySet of tag titles
         """
-        return self.tags.values_list("name", flat=True)
+        if hasattr(self, 'tags'):
+            return self.tags.values_list("title", flat=True)
+        return []
 
-    def has_tag(self, name, organization=None):
+    def has_tag(self, title, organization=None):
         """
         Check if this object has a specific tag.
 
         Args:
-            name (str): Name of the tag to check
+            title (str): Title of the tag to check
             organization: Organization for the tag (uses self.organization if available)
 
         Returns:
@@ -612,68 +614,75 @@ class TaggableMixin(models.Model):
                     )
                 )
 
-        return self.tags.filter(name=name.strip(), organization=organization).exists()
+        if hasattr(self, 'tags'):
+            return self.tags.filter(title=title.strip(), organization=organization).exists()
+        return False
 
 
 class Tag(BaseModel):
     """
-    Tag model for labeling and categorizing any content using Django's content types framework.
+    Global tag model for flexible, lightweight categorization of content.
 
-    Tags are scoped by organization and can be attached to any model instance
-    using Django's generic foreign key mechanism.
+    Tags are scoped by organization and provide a shared tag set across all data types.
+    They enable filtering, cross-linking, and reporting without rigid hierarchies.
+    
+    Features:
+    - Tags apply globally across the organization account
+    - Same tag set is shared across all data types
+    - Tags can be created manually or via AI tooling
+    - Tags can be merged manually
     """
 
     # Define PII fields as a class attribute
-    pii_fields = ["name"]
+    pii_fields = ["title", "definition"]
 
     class Meta:
         verbose_name = _("Tag")
         verbose_name_plural = _("Tags")
         indexes = [
-            models.Index(fields=["organization", "name"]),
-            models.Index(fields=["content_type", "object_id"]),
-            models.Index(fields=["organization", "content_type"]),
+            models.Index(fields=["organization", "title"]),
+            models.Index(fields=["organization", "created_at"]),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["organization", "name", "content_type", "object_id"],
-                name="unique_tag_per_object",
+                fields=["organization", "title"],
+                name="unique_tag_title_per_org",
             )
         ]
 
-    name = models.CharField(max_length=100, help_text=_("Name of the tag"))
+    title = models.CharField(
+        max_length=100, 
+        verbose_name=_("Title"),
+        help_text=_("The tag label")
+    )
+
+    definition = models.TextField(
+        blank=True,
+        verbose_name=_("Definition"),
+        help_text=_("Optional description of the intended use or scope of the tag")
+    )
 
     organization = models.ForeignKey(
         "core.Organization",
         on_delete=models.CASCADE,
         related_name="tags",
+        verbose_name=_("Organization"),
         help_text=_("Organization this tag belongs to"),
     )
-
-    # Generic foreign key fields for tagging any model
-    content_type = models.ForeignKey(
-        ContentType,
-        on_delete=models.CASCADE,
-        help_text=_("Content type of the tagged object"),
-    )
-
-    object_id = models.UUIDField(help_text=_("UUID of the tagged object"))
-
-    content_object = GenericForeignKey("content_type", "object_id")
 
     def clean(self):
         """Validate tag data."""
         super().clean()
 
-        # Ensure tag name is not empty after stripping whitespace
-        if self.name is not None:
-            self.name = self.name.strip()
+        # Ensure tag title is not empty after stripping whitespace
+        if self.title is not None:
+            self.title = self.title.strip()
 
         if (
-            not self.name
+            not self.title
         ):  # This catches None, empty string, and whitespace-only strings
             raise ValidationError(
-                {"name": _("Tag name cannot be empty or only whitespace.")}
+                {"title": _("Tag title cannot be empty or only whitespace.")}
             )
 
     def save(self, *args, **kwargs):
@@ -683,7 +692,7 @@ class Tag(BaseModel):
 
     def __str__(self):
         """Return string representation of the tag."""
-        return f"{self.name} ({self.organization.name})"
+        return f"{self.title} ({self.organization.name})"
 
 
 class Project(BaseModel, TaggableMixin):
@@ -756,6 +765,15 @@ class Project(BaseModel, TaggableMixin):
         help_text=_("Current status of the project"),
     )
 
+    # Tags relationship - global repository tags
+    tags = models.ManyToManyField(
+        "core.Tag",
+        blank=True,
+        related_name="projects",
+        verbose_name=_("Tags"),
+        help_text=_("Global repository tags")
+    )
+
     def clean(self):
         """Validate that end_date is after start_date."""
         super().clean()
@@ -788,7 +806,7 @@ class EvidenceSource(BaseModel, TaggableMixin):
         verbose_name = _("Evidence Source")
         verbose_name_plural = _("Evidence Sources")
         indexes = [
-            models.Index(fields=["organization", "project", "type"]),
+            models.Index(fields=["organization", "type"]),
             models.Index(fields=["processing_status"]),
             models.Index(fields=["created_at"]),
         ]
@@ -891,6 +909,15 @@ class EvidenceSource(BaseModel, TaggableMixin):
         blank=True,
         verbose_name=_("Metadata"),
         help_text=_("Additional metadata including legacy tags"),
+    )
+
+    # Tags relationship - global repository tags
+    tags = models.ManyToManyField(
+        "core.Tag",
+        blank=True,
+        related_name="evidence_sources",
+        verbose_name=_("Tags"),
+        help_text=_("Global repository tags")
     )
     
     def __str__(self):
@@ -1000,6 +1027,15 @@ class EvidenceFact(BaseModel, TaggableMixin):
         blank=True,
         verbose_name=_("Tags List"),
         help_text=_("Legacy list of tag names for this fact"),
+    )
+
+    # Tags relationship - global repository tags
+    tags = models.ManyToManyField(
+        "core.Tag",
+        blank=True,
+        related_name="evidence_facts",
+        verbose_name=_("Tags"),
+        help_text=_("Global repository tags")
     )
     
     def __str__(self):
@@ -1179,6 +1215,15 @@ class EvidenceInsight(BaseModel, TaggableMixin):
         verbose_name=_("Tags List"),
         help_text=_("Legacy list of tag names for this insight"),
     )
+
+    # Tags relationship - global repository tags
+    tags = models.ManyToManyField(
+        "core.Tag",
+        blank=True,
+        related_name="evidence_insights",
+        verbose_name=_("Tags"),
+        help_text=_("Global repository tags")
+    )
     
     def clean(self):
         """Validate evidence score range."""
@@ -1332,6 +1377,15 @@ class Recommendation(BaseModel, TaggableMixin):
         blank=True,
         verbose_name=_("Tags List"),
         help_text=_("Legacy list of tag names for this recommendation"),
+    )
+
+    # Tags relationship - global repository tags
+    tags = models.ManyToManyField(
+        "core.Tag",
+        blank=True,
+        related_name="recommendations",
+        verbose_name=_("Tags"),
+        help_text=_("Global repository tags")
     )
     
     def clean(self):

@@ -166,29 +166,10 @@ class TagFactory(DjangoModelFactory):
     class Meta:
         model = Tag
 
-    name = factory.Faker("word")
+    title = factory.Faker("word")
+    definition = factory.Faker("sentence", nb_words=8)
     organization = factory.SubFactory(OrganizationFactory)
-    content_type = factory.LazyAttribute(
-        lambda o: ContentType.objects.get_for_model(Project)
-    )
-    object_id = factory.SelfAttribute("content_object.id")
-    content_object = factory.SubFactory(
-        ProjectFactory, organization=factory.SelfAttribute("..organization")
-    )
-
-    @classmethod
-    def create_for_object(cls, content_object, **kwargs):
-        """Create a tag for a specific object."""
-        kwargs.update(
-            {
-                "content_type": ContentType.objects.get_for_model(content_object),
-                "object_id": content_object.id,
-                "content_object": content_object,
-            }
-        )
-        if hasattr(content_object, "organization") and "organization" not in kwargs:
-            kwargs["organization"] = content_object.organization
-        return cls(**kwargs)
+    created_by = factory.SubFactory(UserFactory)
 
 
 class EvidenceSourceFactory(DjangoModelFactory):
