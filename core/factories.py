@@ -22,7 +22,7 @@ class UserFactory(DjangoModelFactory):
     is_active = True
     is_staff = False
     is_superuser = False
-    language = factory.Iterator([choice[0] for choice in LanguageChoices.choices])
+    language = LanguageChoices.ENGLISH
     timezone = "UTC"
     last_login_ip = factory.Faker("ipv4")
 
