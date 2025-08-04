@@ -59,11 +59,24 @@ INSTALLED_APPS = [
     # Social providers
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.microsoft",
+    # Enterprise features
+    "drf_spectacular",  # API documentation
+    "django_prometheus",  # Metrics and monitoring
+    # Core application
     "core.apps.CoreConfig",
 ]
 
+# Add development-only apps
+if DEBUG:
+    INSTALLED_APPS += [
+        "django_extensions",
+        "debug_toolbar",
+        "silk",  # Performance profiling
+    ]
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus metrics
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -75,7 +88,13 @@ MIDDLEWARE = [
     "core.logging.StructuredLoggingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus metrics
 ]
+
+# Add development-only middleware
+if DEBUG:
+    MIDDLEWARE.insert(-1, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    MIDDLEWARE.insert(-1, "silk.middleware.SilkMiddleware")
 
 ROOT_URLCONF = "DjangoBoilerplate.urls"
 
@@ -119,6 +138,47 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+# Cache Configuration
+# https://docs.djangoproject.com/en/5.2/topics/cache/
+
+# Redis cache configuration (used in production/staging)
+if config("USE_REDIS_CACHE", default=False, cast=bool):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": config("REDIS_URL", default="redis://redis:6379/1"),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "max_connections": 20,
+                    "health_check_interval": 30,
+                },
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+                "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            },
+            "KEY_PREFIX": config("CACHE_KEY_PREFIX", default="djboiler"),
+            "VERSION": 1,
+            "TIMEOUT": 300,  # 5 minutes default
+        }
+    }
+    
+    # Session storage in Redis for performance
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Development fallback to local memory cache
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+            "TIMEOUT": 300,
+            "OPTIONS": {
+                "MAX_ENTRIES": 1000,
+                "CULL_FREQUENCY": 3,
+            }
         }
     }
 
@@ -265,6 +325,61 @@ REST_FRAMEWORK = {
     },
     # Exception handling
     "EXCEPTION_HANDLER": "api.v1.exceptions.custom_exception_handler",
+    # API Documentation Schema
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# API Documentation with drf-spectacular
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Django Backend Boilerplate API",
+    "DESCRIPTION": "Enterprise-ready Django backend with multi-tenant RBAC, SSO, and comprehensive API documentation",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api/v1/",
+    "DEFAULT_GENERATOR_CLASS": "drf_spectacular.generators.SchemaGenerator",
+    "AUTHENTICATION_WHITELIST": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "SERVERS": [
+        {"url": "http://localhost:8001", "description": "Development server"},
+        {"url": "https://api.yourdomain.com", "description": "Production server"},
+    ],
+    "TAGS": [
+        {"name": "Authentication", "description": "User authentication and token management"},
+        {"name": "Users", "description": "User management and profile operations"},
+        {"name": "Organizations", "description": "Multi-tenant organization management"},
+        {"name": "Health", "description": "System health and monitoring"},
+        {"name": "Storage", "description": "File upload and storage operations"},
+    ],
+    "EXTERNAL_DOCS": {
+        "description": "Full documentation",
+        "url": "https://github.com/MattGaiser/django-backend-boilerplate",
+    },
+    "CONTACT": {
+        "name": "API Support",
+        "email": "support@yourdomain.com",
+    },
+    "LICENSE": {
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    # Security schemes
+    "SECURITY": [
+        {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "Token-based authentication using format: `Token <your-token>`"
+        }
+    ],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": False,
+    "ENUM_NAME_OVERRIDES": {
+        "OrgRoleEnum": "constants.roles.OrgRole",
+        "LanguageEnum": "core.constants.LanguageChoices",
+        "PlanEnum": "core.constants.PlanChoices",
+    },
 }
 
 # CORS Configuration for Frontend Integration
@@ -386,3 +501,188 @@ else:
 # Storage settings for uploaded files
 DEFAULT_FILE_STORAGE = "core.storage.GCSStorage"
 GCS_DEFAULT_ACL = None  # Use bucket default ACL
+
+# ================================
+# ENTERPRISE FEATURES CONFIGURATION
+# ================================
+
+# Performance Monitoring with Django Silk (Development only)
+if DEBUG:
+    SILKY_PYTHON_PROFILER = True
+    SILKY_PYTHON_PROFILER_BINARY = True
+    SILKY_PYTHON_PROFILER_RESULT_PATH = "/tmp/silk_profiles/"
+    SILKY_META = True
+    SILKY_INTERCEPT_FUNC = lambda request: True  # Profile all requests in dev
+    SILKY_MAX_REQUEST_BODY_SIZE = 1024 * 1024  # 1MB
+    SILKY_MAX_RESPONSE_BODY_SIZE = 1024 * 1024  # 1MB
+    
+    # Debug toolbar configuration
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": lambda request: DEBUG,
+        "SHOW_COLLAPSED": True,
+    }
+    INTERNAL_IPS = ["127.0.0.1", "localhost"]
+
+# Rate Limiting Configuration
+RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
+RATELIMIT_USE_CACHE = "default"
+RATELIMIT_VIEW = "core.views.ratelimited"
+
+# Environment Validation (using Pydantic)
+ENVIRONMENT_VALIDATION = {
+    "REQUIRED_VARS": [
+        "SECRET_KEY",
+        "DJANGO_ENV",
+        "POSTGRES_DB",
+        "POSTGRES_USER", 
+        "POSTGRES_PASSWORD",
+    ],
+    "STAGING_VARS": [
+        "ALLOWED_HOSTS",
+        "POSTGRES_HOST",
+    ],
+    "PRODUCTION_VARS": [
+        "ALLOWED_HOSTS",
+        "POSTGRES_HOST",
+        "GOOGLE_OAUTH2_CLIENT_ID",
+        "GOOGLE_OAUTH2_CLIENT_SECRET",
+    ],
+}
+
+# Monitoring and Metrics
+PROMETHEUS_EXPORT_MIGRATIONS = False  # Don't expose migration metrics
+PROMETHEUS_LATENCY_BUCKETS = (
+    0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, float("inf")
+)
+
+# Background Jobs Configuration (beyond Prefect)
+BACKGROUND_JOBS = {
+    "ENABLED": config("BACKGROUND_JOBS_ENABLED", default=True, cast=bool),
+    "QUEUE_NAME": config("JOB_QUEUE_NAME", default="default"),
+    "RETRY_ATTEMPTS": config("JOB_RETRY_ATTEMPTS", default=3, cast=int),
+    "TIMEOUT": config("JOB_TIMEOUT", default=300, cast=int),  # 5 minutes
+}
+
+# Enhanced Security Configuration
+SECURITY_HEADERS = {
+    "REFERRER_POLICY": "strict-origin-when-cross-origin",
+    "PERMISSIONS_POLICY": "geolocation=(), microphone=(), camera=()",
+    "CROSS_ORIGIN_OPENER_POLICY": "same-origin",
+    "CROSS_ORIGIN_EMBEDDER_POLICY": "require-corp",
+}
+
+# File Upload Security
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
+# ALLOWED_FILE_EXTENSIONS for security
+ALLOWED_FILE_EXTENSIONS = [
+    # Images
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+    # Documents
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.txt', '.csv', '.rtf',
+    # Archives
+    '.zip', '.tar', '.gz',
+    # Media
+    '.mp4', '.avi', '.mov', '.wmv', '.mp3', '.wav',
+]
+
+DANGEROUS_FILE_EXTENSIONS = [
+    '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js',
+    '.jar', '.app', '.deb', '.pkg', '.rpm', '.dmg', '.msi',
+    '.php', '.jsp', '.asp', '.aspx', '.py', '.rb', '.pl',
+]
+
+# API Response Configuration
+API_RESPONSE_FORMATS = {
+    "DEFAULT_ERROR_FORMAT": "detailed",  # or "simple"
+    "INCLUDE_STACK_TRACE": DEBUG,
+    "MAX_PAGE_SIZE": 1000,
+    "DEFAULT_PAGE_SIZE": 100,
+}
+
+# Backup Configuration
+BACKUP_CONFIG = {
+    "ENABLED": config("BACKUP_ENABLED", default=False, cast=bool),
+    "SCHEDULE": config("BACKUP_SCHEDULE", default="0 2 * * *"),  # Daily at 2 AM
+    "RETENTION_DAYS": config("BACKUP_RETENTION_DAYS", default=30, cast=int),
+    "STORAGE_BACKEND": config("BACKUP_STORAGE", default="local"),
+}
+
+# Email Configuration
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", 
+    default="django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_HOST = config("EMAIL_HOST", default="localhost")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@yourdomain.com")
+
+# Notification System Configuration
+NOTIFICATIONS = {
+    "ENABLED": config("NOTIFICATIONS_ENABLED", default=True, cast=bool),
+    "CHANNELS": {
+        "email": config("NOTIFICATIONS_EMAIL", default=True, cast=bool),
+        "slack": config("NOTIFICATIONS_SLACK", default=False, cast=bool),
+        "webhook": config("NOTIFICATIONS_WEBHOOK", default=False, cast=bool),
+    },
+    "SLACK_WEBHOOK_URL": config("SLACK_WEBHOOK_URL", default=""),
+    "WEBHOOK_ENDPOINTS": config("WEBHOOK_ENDPOINTS", default="", cast=lambda v: v.split(",") if v else []),
+}
+
+# Search Configuration (placeholder for future implementation)
+SEARCH_CONFIG = {
+    "BACKEND": config("SEARCH_BACKEND", default="database"),  # "database", "elasticsearch", "solr"
+    "ELASTICSEARCH_URL": config("ELASTICSEARCH_URL", default=""),
+    "INDEX_PREFIX": config("SEARCH_INDEX_PREFIX", default="djboiler"),
+}
+
+# Data Export/Import Configuration
+DATA_EXPORT = {
+    "ENABLED": config("DATA_EXPORT_ENABLED", default=True, cast=bool),
+    "MAX_RECORDS_PER_EXPORT": config("MAX_EXPORT_RECORDS", default=10000, cast=int),
+    "FORMATS": ["csv", "json", "xlsx"],
+    "STORAGE_BACKEND": "default",  # Use default file storage
+}
+
+# Webhook System Configuration
+WEBHOOKS = {
+    "ENABLED": config("WEBHOOKS_ENABLED", default=False, cast=bool),
+    "TIMEOUT": config("WEBHOOK_TIMEOUT", default=30, cast=int),
+    "RETRY_ATTEMPTS": config("WEBHOOK_RETRY_ATTEMPTS", default=3, cast=int),
+    "SIGNATURE_HEADER": "X-Webhook-Signature",
+    "EVENTS": [
+        "user.created",
+        "user.updated", 
+        "organization.created",
+        "organization.updated",
+    ],
+}
+
+# Feature Flags Configuration (enhanced)
+FEATURE_FLAGS = {
+    "USE_CACHE": config("FEATURE_FLAGS_CACHE", default=True, cast=bool),
+    "CACHE_TIMEOUT": config("FEATURE_FLAGS_CACHE_TIMEOUT", default=300, cast=int),
+    "DEFAULT_VALUE": False,
+    "AVAILABLE_FLAGS": [
+        "EXPERIMENTAL_UI",
+        "ADVANCED_ANALYTICS", 
+        "BETA_FEATURES",
+        "AI_INTEGRATION",
+    ],
+}
+
+# Version Information
+VERSION_INFO = {
+    "API_VERSION": "1.0.0",
+    "BUILD_DATE": config("BUILD_DATE", default=""),
+    "GIT_COMMIT": config("GIT_COMMIT", default=""),
+    "GIT_BRANCH": config("GIT_BRANCH", default=""),
+    "ENVIRONMENT": DJANGO_ENV,
+}

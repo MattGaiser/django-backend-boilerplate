@@ -17,7 +17,8 @@ from api.v1.views.auth import (
 )
 from api.v1.views.demo import LoggingDemoView
 from api.v1.views.flow_trigger import trigger_hello_world_flow
-from api.v1.views.health import HealthCheckView
+from api.v1.views.health import HealthCheckView, LivenessProbeView, ReadinessProbeView
+from api.v1.views.metrics import MetricsView, PrometheusMetricsView, SystemStatusView
 from api.v1.views.storage import (
     storage_upload,
     storage_download,
@@ -44,6 +45,12 @@ urlpatterns = [
     # System endpoints
     path("version/", version_info, name="api-version"),
     path("health/", HealthCheckView.as_view(), name="api-health-check"),
+    path("health/live/", LivenessProbeView.as_view(), name="api-liveness-probe"),
+    path("health/ready/", ReadinessProbeView.as_view(), name="api-readiness-probe"),
+    # Monitoring and metrics endpoints
+    path("metrics/", MetricsView.as_view(), name="api-metrics"),
+    path("metrics/prometheus/", PrometheusMetricsView.as_view(), name="api-prometheus-metrics"),
+    path("system/status/", SystemStatusView.as_view(), name="api-system-status"),
     # Demo endpoints
     path("demo/logging/", LoggingDemoView.as_view(), name="api-logging-demo"),
     # Authentication endpoints
