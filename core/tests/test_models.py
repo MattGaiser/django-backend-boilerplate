@@ -96,15 +96,6 @@ class TestBaseModel(TestCase):
     """Test cases for the BaseModel abstract class."""
 
     def setUp(self):
-        # Create a concrete model for testing BaseModel functionality
-        class TestModel(BaseModel):
-            pii_fields = []  # No PII fields for this test model
-            name = models.CharField(max_length=100)
-
-            class Meta:
-                app_label = "core"
-
-        self.TestModel = TestModel
         self.user = UserFactory()
 
     def test_uuid_primary_key(self):
@@ -146,22 +137,20 @@ class TestBaseModel(TestCase):
 
     def test_basemodel_default_string_representation(self):
         """Test BaseModel's default string representation."""
-        # Create a simple model that inherits from BaseModel for testing
-        from django.db import models
-
-        class SimpleTestModel(BaseModel):
-            pii_fields = []
-            name = models.CharField(max_length=100, default="test")
-
-            class Meta:
-                app_label = "core"
-
-        # We can't actually create this in the database since it's not in migrations
-        # But we can test the __str__ method logic
-        instance = SimpleTestModel(name="test")
-        str_repr = str(instance)
-        self.assertIn("SimpleTestModel", str_repr)
-        # The UUID should be in the string representation
+        # Test using the User model which inherits from BaseModel
+        # Since User model overrides __str__ to return email, we'll test BaseModel's logic differently
+        user = UserFactory()
+        
+        # Create a mock instance to test BaseModel's __str__ directly
+        from unittest.mock import Mock
+        mock_instance = Mock()
+        mock_instance.__class__.__name__ = "TestModel"
+        mock_instance.id = user.id  # Use a real UUID
+        
+        # Call BaseModel's __str__ method directly
+        str_repr = BaseModel.__str__(mock_instance)
+        self.assertIn("TestModel", str_repr)
+        # The UUID should be in the string representation (first 8 chars + ...)
         self.assertIn("...", str_repr)
 
 
