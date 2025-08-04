@@ -48,54 +48,50 @@ class TestTagModel:
 
     def test_tag_title_validation_whitespace_only(self):
         """Test that whitespace-only tag titles are not allowed."""
-        tag = TagFactory.build(title="   ")
+        org = OrganizationFactory()
+
+        tag = Tag(
+            title="   ",
+            organization=org,
+        )
 
         with pytest.raises(ValidationError):
             tag.clean()
 
     def test_tag_title_strips_whitespace(self):
-        """Test that tag titles automatically strip whitespace."""
+        """Test that tag titles are automatically stripped of whitespace."""
         org = OrganizationFactory()
-        
-        tag = TagFactory(title="  spaced  ", organization=org)
+        user = UserFactory()
 
-        assert tag.title == "spaced"
+        tag = Tag(
+            title="  urgent  ",
+            organization=org,
+            created_by=user,
+        )
+        tag.save()
+
+        assert tag.title == "urgent"
 
     def test_unique_constraint(self):
-        """Test that tag titles must be unique within an organization."""
+        """Test that tag titles are unique within an organization."""
         org = OrganizationFactory()
-        TagFactory(title="duplicate", organization=org)
+        TagFactory(title="urgent", organization=org)
 
-        # Try to create another tag with the same title in the same org
+        # Try to create another tag with the same title
         with pytest.raises(IntegrityError):
-            TagFactory(title="duplicate", organization=org)
-
-    def test_same_tag_different_objects(self):
-        """Test that the same tag can be used on different objects."""
-        org = OrganizationFactory()
-        tag = TagFactory(title="common", organization=org)
-        
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-        
-        # Add the same tag to both projects
-        project1.tags.add(tag)
-        project2.tags.add(tag)
-        
-        assert tag in project1.tags.all()
-        assert tag in project2.tags.all()
+            TagFactory(title="urgent", organization=org)
 
     def test_same_tag_different_organizations(self):
-        """Test that tags with the same title can exist in different organizations."""
+        """Test that same tag title can exist in different organizations."""
         org1 = OrganizationFactory()
         org2 = OrganizationFactory()
 
-        tag1 = TagFactory(title="same-title", organization=org1)
-        tag2 = TagFactory(title="same-title", organization=org2)
+        tag1 = TagFactory(title="urgent", organization=org1)
+        tag2 = TagFactory(title="urgent", organization=org2)
 
-        # Should not raise any exceptions
         assert tag1.title == tag2.title
         assert tag1.organization != tag2.organization
+
 
 @pytest.mark.django_db
 class TestTaggableMixin:
@@ -169,6 +165,16 @@ class TestTaggableMixin:
 
         assert result is False
 
+    def test_remove_tag_strips_whitespace(self):
+        """Test that remove_tag strips whitespace from tag names."""
+        project = ProjectFactory()
+        project.add_tag("spaced")
+
+        result = project.remove_tag("  spaced  ")
+
+        assert result is True
+        assert project.tags.count() == 0
+
     def test_get_tag_names(self):
         """Test getting all tag names for an object."""
         project = ProjectFactory()
@@ -180,6 +186,14 @@ class TestTaggableMixin:
         assert "urgent" in tag_names
         assert "important" in tag_names
         assert len(tag_names) == 2
+
+    def test_get_tag_names_empty(self):
+        """Test get_tag_names returns empty list when no tags."""
+        project = ProjectFactory()
+
+        tag_names = list(project.get_tag_names())
+
+        assert tag_names == []
 
     def test_has_tag_existing(self):
         """Test checking if object has an existing tag."""
@@ -194,6 +208,13 @@ class TestTaggableMixin:
 
         assert not project.has_tag("nonexistent")
 
+    def test_has_tag_strips_whitespace(self):
+        """Test that has_tag strips whitespace from tag names."""
+        project = ProjectFactory()
+        project.add_tag("spaced")
+
+        assert project.has_tag("  spaced  ") is True
+
     def test_has_tag_different_organization(self):
         """Test that has_tag is organization-scoped."""
         org1 = OrganizationFactory()
@@ -202,10 +223,8 @@ class TestTaggableMixin:
         project1 = ProjectFactory(organization=org1)
         project2 = ProjectFactory(organization=org2)
         
-        # Add tag to project1
+        # Add same tag name to both projects (different orgs)
         project1.add_tag("urgent")
-        
-        # Create tag with same title in different org
         project2.add_tag("urgent")
         
         # Both should have the tag in their respective organizations
@@ -278,6 +297,28 @@ class TestTaggingQueries:
         assert tag2 in org1_tags
         assert len(org1_tags) == 2
 
+    def test_get_tagged_objects_by_content_type(self):
+        """Test retrieving all objects of a specific type that have tags."""
+        org = OrganizationFactory()
+        project1 = ProjectFactory(organization=org)
+        project2 = ProjectFactory(organization=org)
+        project3 = ProjectFactory(organization=org)
+
+        project1.add_tag("test")
+        project2.add_tag("demo")
+        # project3 has no tags
+
+        # Get all projects that have at least one tag
+        tagged_projects = Project.objects.filter(
+            tags__isnull=False,
+            organization=org
+        ).distinct()
+
+        assert project1 in tagged_projects
+        assert project2 in tagged_projects
+        assert project3 not in tagged_projects
+        assert tagged_projects.count() == 2
+
     def test_tag_counts_by_title(self):
         """Test getting tag usage counts."""
         org = OrganizationFactory()
@@ -298,10 +339,136 @@ class TestTaggingQueries:
 
         assert tag_usage.usage_count == 3
 
+    def test_filter_objects_by_tag_title_with_add_tag(self):
+        """Test filtering objects by tag title using add_tag method."""
+        org = OrganizationFactory()
+        project1 = ProjectFactory(organization=org)
+        project2 = ProjectFactory(organization=org)
+        project3 = ProjectFactory(organization=org)
+
+        project1.add_tag("urgent")
+        project2.add_tag("urgent")
+        project3.add_tag("normal")
+
+        # Filter projects with "urgent" tag
+        urgent_projects = Project.objects.filter(
+            tags__title="urgent", tags__organization=org
+        ).distinct()
+
+        assert project1 in urgent_projects
+        assert project2 in urgent_projects
+        assert project3 not in urgent_projects
+        assert urgent_projects.count() == 2
+
+    def test_filter_by_multiple_tags_with_add_tag(self):
+        """Test filtering objects that have multiple specific tags using add_tag."""
+        org = OrganizationFactory()
+        project1 = ProjectFactory(organization=org)
+        project2 = ProjectFactory(organization=org)
+
+        project1.add_tag("urgent")
+        project1.add_tag("bug")
+        project2.add_tag("urgent")
+        project2.add_tag("feature")
+
+        # Find projects that are both urgent and bug
+        urgent_bug_projects = (
+            Project.objects.filter(tags__title="urgent", tags__organization=org)
+            .filter(tags__title="bug", tags__organization=org)
+            .distinct()
+        )
+
+        assert project1 in urgent_bug_projects
+        assert project2 not in urgent_bug_projects
+        assert urgent_bug_projects.count() == 1
+
+    def test_get_all_tags_for_organization_with_add_tag(self):
+        """Test retrieving all tags for an organization using add_tag."""
+        org1 = OrganizationFactory()
+        org2 = OrganizationFactory()
+
+        project1 = ProjectFactory(organization=org1)
+        project2 = ProjectFactory(organization=org2)
+
+        project1.add_tag("tag1")
+        project1.add_tag("tag2")
+        project2.add_tag("tag3")
+
+        org1_tags = Tag.objects.filter(organization=org1)
+        org2_tags = Tag.objects.filter(organization=org2)
+
+        assert org1_tags.count() == 2
+        assert org2_tags.count() == 1
+
+        org1_tag_titles = set(org1_tags.values_list("title", flat=True))
+        assert org1_tag_titles == {"tag1", "tag2"}
+
+    def test_tag_counts_by_title_with_add_tag(self):
+        """Test counting how many objects have each tag using add_tag."""
+        org = OrganizationFactory()
+        project1 = ProjectFactory(organization=org)
+        project2 = ProjectFactory(organization=org)
+        project3 = ProjectFactory(organization=org)
+
+        project1.add_tag("urgent")
+        project2.add_tag("urgent")
+        project3.add_tag("normal")
+
+        from django.db.models import Count
+
+        tag_counts = (
+            Tag.objects.filter(organization=org)
+            .values("title")
+            .annotate(count=Count("projects"))
+            .order_by("title")
+        )
+
+        tag_counts_dict = {item["title"]: item["count"] for item in tag_counts}
+
+        assert tag_counts_dict["urgent"] == 2
+        assert tag_counts_dict["normal"] == 1
+
 
 @pytest.mark.django_db
 class TestTagsGlobalFunctionality:
-    """Test cases for global tag functionality across different models."""
+    """Test cases for global tag functionality with M2M relationships."""
+
+    def test_tag_shared_across_different_model_types(self):
+        """Test that the same tag can be used across different model types."""
+        org = OrganizationFactory()
+        project1 = ProjectFactory(organization=org)
+        project2 = ProjectFactory(organization=org)
+
+        # Use the same tag title for different projects  
+        project1.add_tag("shared-tag")
+        project2.add_tag("shared-tag")
+
+        # Should create only one tag that's shared
+        shared_tags = Tag.objects.filter(title="shared-tag", organization=org)
+        assert shared_tags.count() == 1
+        
+        shared_tag = shared_tags.first()
+        assert shared_tag in project1.tags.all()
+        assert shared_tag in project2.tags.all()
+
+    def test_tag_deletion_does_not_cascade_to_objects(self):
+        """Test that deleting a tag doesn't delete the tagged objects."""
+        project = ProjectFactory()
+        tag = project.add_tag("test-tag")
+
+        project_id = project.id
+        tag_id = tag.id
+
+        # Delete the tag
+        tag.delete()
+
+        # Project should still exist, but tag should be gone
+        assert Project.objects.filter(id=project_id).exists()
+        assert not Tag.objects.filter(id=tag_id).exists()
+        
+        # Project should no longer have the tag
+        project.refresh_from_db()
+        assert not project.has_tag("test-tag")
 
     def test_tag_shared_across_models(self):
         """Test that tags can be shared across different model types."""
@@ -342,256 +509,11 @@ class TestTagFactory:
         assert tag.created_by is not None
         assert tag.definition is not None
 
-        result = project.remove_tag("nonexistent")
-
-        assert result is False
-
-    def test_remove_tag_strips_whitespace(self):
-        """Test that remove_tag strips whitespace from tag names."""
-        project = ProjectFactory()
-        project.add_tag("spaced")
-
-        result = project.remove_tag("  spaced  ")
-
-        assert result is True
-        assert project.tags.count() == 0
-
-    def test_get_tag_names(self):
-        """Test retrieving all tag names for an object."""
-        project = ProjectFactory()
-        project.add_tag("urgent")
-        project.add_tag("important")
-        project.add_tag("bug")
-
-        tag_names = list(project.get_tag_names())
-
-        assert len(tag_names) == 3
-        assert "urgent" in tag_names
-        assert "important" in tag_names
-        assert "bug" in tag_names
-
-    def test_get_tag_names_empty(self):
-        """Test get_tag_names returns empty list when no tags."""
-        project = ProjectFactory()
-
-        tag_names = list(project.get_tag_names())
-
-        assert tag_names == []
-
-    def test_has_tag_existing(self):
-        """Test has_tag returns True for existing tags."""
-        project = ProjectFactory()
-        project.add_tag("urgent")
-
-        assert project.has_tag("urgent") is True
-
-    def test_has_tag_nonexistent(self):
-        """Test has_tag returns False for non-existent tags."""
-        project = ProjectFactory()
-
-        assert project.has_tag("nonexistent") is False
-
-    def test_has_tag_strips_whitespace(self):
-        """Test that has_tag strips whitespace from tag names."""
-        project = ProjectFactory()
-        project.add_tag("spaced")
-
-        assert project.has_tag("  spaced  ") is True
-
-
-@pytest.mark.django_db
-class TestTaggingQueries:
-    """Test cases for querying and filtering tagged objects."""
-
-    def test_filter_objects_by_tag_name(self):
-        """Test filtering objects by tag name."""
+    def test_tag_factory_for_organization(self):
+        """Test creating tags for a specific organization.""" 
         org = OrganizationFactory()
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-        project3 = ProjectFactory(organization=org)
 
-        project1.add_tag("urgent")
-        project2.add_tag("urgent")
-        project3.add_tag("normal")
+        tag = TagFactory(organization=org, title="specific-tag")
 
-        # Filter projects with "urgent" tag
-        urgent_projects = Project.objects.filter(
-            tags__name="urgent", tags__organization=org
-        ).distinct()
-
-        assert project1 in urgent_projects
-        assert project2 in urgent_projects
-        assert project3 not in urgent_projects
-        assert urgent_projects.count() == 2
-
-    def test_filter_by_multiple_tags(self):
-        """Test filtering objects that have multiple specific tags."""
-        org = OrganizationFactory()
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-
-        project1.add_tag("urgent")
-        project1.add_tag("bug")
-        project2.add_tag("urgent")
-        project2.add_tag("feature")
-
-        # Find projects that are both urgent and bug
-        urgent_bug_projects = (
-            Project.objects.filter(tags__name="urgent", tags__organization=org)
-            .filter(tags__name="bug", tags__organization=org)
-            .distinct()
-        )
-
-        assert project1 in urgent_bug_projects
-        assert project2 not in urgent_bug_projects
-        assert urgent_bug_projects.count() == 1
-
-    def test_get_all_tags_for_organization(self):
-        """Test retrieving all tags for an organization."""
-        org1 = OrganizationFactory()
-        org2 = OrganizationFactory()
-
-        project1 = ProjectFactory(organization=org1)
-        project2 = ProjectFactory(organization=org2)
-
-        project1.add_tag("tag1")
-        project1.add_tag("tag2")
-        project2.add_tag("tag3")
-
-        org1_tags = Tag.objects.filter(organization=org1)
-        org2_tags = Tag.objects.filter(organization=org2)
-
-        assert org1_tags.count() == 2
-        assert org2_tags.count() == 1
-
-        org1_tag_names = set(org1_tags.values_list("name", flat=True))
-        assert org1_tag_names == {"tag1", "tag2"}
-
-    def test_get_tagged_objects_by_content_type(self):
-        """Test retrieving all objects of a specific type that have tags."""
-        org = OrganizationFactory()
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-        project3 = ProjectFactory(organization=org)
-
-        project1.add_tag("test")
-        project2.add_tag("demo")
-        # project3 has no tags
-
-        project_content_type = ContentType.objects.get_for_model(Project)
-        tagged_projects = Project.objects.filter(
-            id__in=Tag.objects.filter(
-                content_type=project_content_type, organization=org
-            ).values_list("object_id", flat=True)
-        )
-
-        assert project1 in tagged_projects
-        assert project2 in tagged_projects
-        assert project3 not in tagged_projects
-        assert tagged_projects.count() == 2
-
-    def test_tag_counts_by_name(self):
-        """Test counting how many objects have each tag."""
-        org = OrganizationFactory()
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-        project3 = ProjectFactory(organization=org)
-
-        project1.add_tag("urgent")
-        project2.add_tag("urgent")
-        project3.add_tag("normal")
-
-        from django.db.models import Count
-
-        tag_counts = (
-            Tag.objects.filter(organization=org)
-            .values("name")
-            .annotate(count=Count("id"))
-            .order_by("name")
-        )
-
-        tag_counts_dict = {item["name"]: item["count"] for item in tag_counts}
-
-        assert tag_counts_dict["urgent"] == 2
-        assert tag_counts_dict["normal"] == 1
-
-
-@pytest.mark.django_db
-class TestTagsGenericForeignKey:
-    """Test cases for generic foreign key functionality."""
-
-    def test_tag_different_model_types(self):
-        """Test tagging different types of models."""
-        org = OrganizationFactory()
-        project1 = ProjectFactory(organization=org)
-        project2 = ProjectFactory(organization=org)
-
-        # Tag different projects to test generic foreign key works with same model type
-        project1_tag = project1.add_tag("project1-tag")
-        project2_tag = project2.add_tag("project2-tag")
-
-        assert project1_tag.content_type == ContentType.objects.get_for_model(Project)
-        assert project2_tag.content_type == ContentType.objects.get_for_model(Project)
-
-        assert project1_tag.content_object == project1
-        assert project2_tag.content_object == project2
-
-        # Test that each project has its own tags
-        assert project1.has_tag("project1-tag")
-        assert not project1.has_tag("project2-tag")
-        assert project2.has_tag("project2-tag")
-        assert not project2.has_tag("project1-tag")
-
-    def test_content_object_deletion_cascades(self):
-        """Test that tags are deleted when the tagged object is deleted."""
-        project = ProjectFactory()
-        project.add_tag("test-tag")
-
-        tag_count_before = Tag.objects.count()
-        assert tag_count_before == 1
-
-        project.delete()
-
-        tag_count_after = Tag.objects.count()
-        assert tag_count_after == 0
-
-    def test_organization_deletion_cascades(self):
-        """Test that tags are deleted when the organization is deleted."""
-        org = OrganizationFactory()
-        project = ProjectFactory(organization=org)
-        project.add_tag("test-tag")
-
-        tag_count_before = Tag.objects.count()
-        assert tag_count_before == 1
-
-        org.delete()
-
-        tag_count_after = Tag.objects.count()
-        assert tag_count_after == 0
-
-
-@pytest.mark.django_db
-class TestTagFactory:
-    """Test cases for the TagFactory."""
-
-    def test_tag_factory_basic(self):
-        """Test basic TagFactory functionality."""
-        tag = TagFactory()
-
-        assert tag.name
-        assert tag.organization
-        assert tag.content_object
-        assert tag.content_type
-        assert tag.object_id
-
-    def test_tag_factory_for_object(self):
-        """Test TagFactory.create_for_object method."""
-        project = ProjectFactory()
-
-        tag = TagFactory.create_for_object(content_object=project, name="custom-tag")
-
-        assert tag.name == "custom-tag"
-        assert tag.content_object == project
-        assert tag.organization == project.organization
-        assert tag.content_type == ContentType.objects.get_for_model(Project)
-        assert tag.object_id == project.id
+        assert tag.title == "specific-tag"
+        assert tag.organization == org
