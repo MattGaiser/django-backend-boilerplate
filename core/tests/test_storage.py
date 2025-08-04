@@ -25,53 +25,61 @@ class TestGCSStorage:
         self.bucket_name = "test-bucket"
         self.storage = GCSStorage(bucket_name=self.bucket_name)
 
-    @patch('core.storage.storage')
-    def test_client_initialization_production(self, mock_storage_module):
+    def test_client_initialization_production(self):
         """Test GCS client initialization for production."""
-        mock_client = MagicMock()
-        mock_storage_module.Client.return_value = mock_client
-        
-        with patch('google.cloud.storage'):
+        # Mock the storage module directly
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.return_value = mock_client
+            
+            # Create storage with explicit production settings
             storage = GCSStorage(bucket_name="test", client_options={})
+            # Override the settings for this test to simulate production
+            storage.use_emulator = False
+            storage.client_options = {}
             
             # Access client property to trigger initialization
             client = storage.client
             
             assert client == mock_client
+            mock_client_class.assert_called_once_with()
 
-    @patch('google.cloud.storage')
-    def test_client_initialization_emulator(self, mock_storage_module):
+    def test_client_initialization_emulator(self):
         """Test GCS client initialization for emulator."""
-        mock_client = MagicMock()
-        mock_storage_module.Client.create_anonymous_client.return_value = mock_client
-        
-        storage = GCSStorage(
-            bucket_name="test",
-            client_options={'api_endpoint': 'http://localhost:9090'}
-        )
-        storage.use_emulator = True
-        
-        # Access client property to trigger initialization
-        client = storage.client
-        
-        assert client == mock_client
-        mock_storage_module.Client.create_anonymous_client.assert_called_once()
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.create_anonymous_client.return_value = mock_client
+            
+            storage = GCSStorage(
+                bucket_name="test",
+                client_options={'api_endpoint': 'http://localhost:9090'}
+            )
+            storage.use_emulator = True
+            
+            # Access client property to trigger initialization
+            client = storage.client
+            
+            assert client == mock_client
+            mock_client_class.create_anonymous_client.assert_called_once()
 
-    @patch('google.cloud.storage')
-    def test_bucket_initialization(self, mock_storage_module):
+    def test_bucket_initialization(self):
         """Test GCS bucket initialization."""
-        mock_client = MagicMock()
-        mock_bucket = MagicMock()
-        mock_storage_module.Client.return_value = mock_client
-        mock_client.bucket.return_value = mock_bucket
-        
-        storage = GCSStorage(bucket_name="test-bucket")
-        
-        # Access bucket property to trigger initialization
-        bucket = storage.bucket
-        
-        assert bucket == mock_bucket
-        mock_client.bucket.assert_called_once_with("test-bucket")
+        with patch('google.cloud.storage.Client') as mock_client_class:
+            mock_client = MagicMock()
+            mock_bucket = MagicMock()
+            mock_client_class.return_value = mock_client
+            mock_client.bucket.return_value = mock_bucket
+            
+            storage = GCSStorage(bucket_name="test-bucket")
+            # Override the settings for this test to simulate production
+            storage.use_emulator = False
+            storage.client_options = {}
+            
+            # Access bucket property to trigger initialization
+            bucket = storage.bucket
+            
+            assert bucket == mock_bucket
+            mock_client.bucket.assert_called_once_with("test-bucket")
 
     def test_organization_prefix_generation(self):
         """Test organization prefix generation."""
@@ -263,7 +271,7 @@ class TestOrganizationScopedGCSStorage:
         
         assert storage.organization_id == org_id
 
-    @patch('core.middleware.get_current_user')
+    @patch('core.signals.get_current_user')
     def test_get_current_organization_id_from_user(self, mock_get_user):
         """Test getting organization ID from current user."""
         mock_get_user.return_value = self.user
@@ -273,7 +281,7 @@ class TestOrganizationScopedGCSStorage:
         
         assert org_id == str(self.org.id)
 
-    @patch('core.middleware.get_current_user')
+    @patch('core.signals.get_current_user')
     def test_get_current_organization_id_no_user(self, mock_get_user):
         """Test getting organization ID with no current user."""
         mock_get_user.return_value = None
@@ -300,7 +308,7 @@ class TestOrganizationScopedGCSStorage:
         with pytest.raises(PermissionDenied, match="No organization context"):
             storage._get_scoped_name(file_name)
 
-    @patch.object(OrganizationScopedGCSStorage, '_save')
+    @patch.object(GCSStorage, '_save')
     def test_save_with_scoping(self, mock_save):
         """Test save operation with organization scoping."""
         mock_save.return_value = f"orgs/{self.org.id}/test.txt"
@@ -313,7 +321,7 @@ class TestOrganizationScopedGCSStorage:
         mock_save.assert_called_once_with(expected_path, content)
         assert result == expected_path
 
-    @patch.object(OrganizationScopedGCSStorage, '_open')
+    @patch.object(GCSStorage, '_open')
     def test_open_with_scoping(self, mock_open):
         """Test open operation with organization scoping."""
         mock_file = MagicMock()
@@ -325,7 +333,7 @@ class TestOrganizationScopedGCSStorage:
         mock_open.assert_called_once_with(expected_path, 'rb')
         assert result == mock_file
 
-    @patch.object(OrganizationScopedGCSStorage, 'delete')
+    @patch.object(GCSStorage, 'delete')
     def test_delete_with_scoping(self, mock_delete):
         """Test delete operation with organization scoping."""
         self.storage.delete("test.txt")
@@ -333,7 +341,7 @@ class TestOrganizationScopedGCSStorage:
         expected_path = f"orgs/{self.org.id}/test.txt"
         mock_delete.assert_called_once_with(expected_path)
 
-    @patch.object(OrganizationScopedGCSStorage, 'exists')
+    @patch.object(GCSStorage, 'exists')
     def test_exists_with_scoping(self, mock_exists):
         """Test exists operation with organization scoping."""
         mock_exists.return_value = True
@@ -344,7 +352,7 @@ class TestOrganizationScopedGCSStorage:
         mock_exists.assert_called_once_with(expected_path)
         assert result is True
 
-    @patch.object(OrganizationScopedGCSStorage, 'url')
+    @patch.object(GCSStorage, 'url')
     def test_url_with_scoping(self, mock_url):
         """Test URL generation with organization scoping."""
         mock_url.return_value = "https://signed-url.com"
@@ -355,7 +363,7 @@ class TestOrganizationScopedGCSStorage:
         mock_url.assert_called_once_with(expected_path, 3600)
         assert result == "https://signed-url.com"
 
-    @patch.object(OrganizationScopedGCSStorage, 'size')
+    @patch.object(GCSStorage, 'size')
     def test_size_with_scoping(self, mock_size):
         """Test size operation with organization scoping."""
         mock_size.return_value = 1024
@@ -366,7 +374,7 @@ class TestOrganizationScopedGCSStorage:
         mock_size.assert_called_once_with(expected_path)
         assert result == 1024
 
-    @patch.object(OrganizationScopedGCSStorage, 'listdir')
+    @patch.object(GCSStorage, 'listdir')
     def test_listdir_with_scoping(self, mock_listdir):
         """Test listdir operation with organization scoping."""
         mock_listdir.return_value = ([], ["file1.txt", "file2.txt"])

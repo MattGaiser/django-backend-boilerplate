@@ -35,7 +35,7 @@ SECRET_KEY = config(
 DEBUG = config("DEBUG", default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0", cast=lambda v: v.split(",")
+    "ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0,testserver", cast=lambda v: v.split(",")
 )
 
 
@@ -299,7 +299,7 @@ SECURE_CSP_IMG_SRC = "'self' data: https:"
 SECURE_CSP_CONNECT_SRC = "'self'"
 
 # Additional security headers for production
-if not DEBUG:
+if not DEBUG and DJANGO_ENV == "production":
     SECURE_HSTS_SECONDS = 31536000  # HSTS header for 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True

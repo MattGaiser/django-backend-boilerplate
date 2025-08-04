@@ -50,10 +50,16 @@ class GCSStorage(Storage):
                 from google.cloud import storage
                 
                 if self.use_emulator:
-                    # For emulator, create client without authentication
+                    # For emulator, ensure the STORAGE_EMULATOR_HOST environment variable is set
+                    api_endpoint = self.client_options.get('api_endpoint')
+                    if api_endpoint:
+                        # Remove http:// prefix for the STORAGE_EMULATOR_HOST env var
+                        emulator_host = api_endpoint.replace('http://', '').replace('https://', '')
+                        os.environ['STORAGE_EMULATOR_HOST'] = emulator_host
+                        logger.info(f"Set STORAGE_EMULATOR_HOST to: {emulator_host}")
+                    
+                    # Create client without authentication for emulator
                     self._client = storage.Client.create_anonymous_client()
-                    if self.client_options.get('api_endpoint'):
-                        self._client._http.base_url = self.client_options['api_endpoint']
                 else:
                     # For production, use default authentication
                     self._client = storage.Client(**self.client_options)
@@ -125,11 +131,16 @@ class GCSStorage(Storage):
 
         org_prefix = self._get_organization_prefix(organization_id)
         
-        # If path doesn't start with org prefix, add it
-        if not name.startswith(org_prefix):
+        # Check if path already has an organization prefix (starts with "orgs/")
+        if name.startswith("orgs/"):
+            # If it has an org prefix but it's not the correct one, deny access
+            if not name.startswith(org_prefix):
+                raise PermissionDenied(f"File access denied: {name} not in organization scope")
+        else:
+            # If path doesn't start with org prefix, add it
             name = org_prefix + name.lstrip('/')
             
-        # Double-check that the path is within the organization scope
+        # Final validation that the path is within the organization scope
         if not name.startswith(org_prefix):
             raise PermissionDenied(f"File access denied: {name} not in organization scope")
             
@@ -337,7 +348,7 @@ class OrganizationScopedGCSStorage(GCSStorage):
         Returns:
             Organization ID string or None
         """
-        from core.middleware import get_current_user
+        from core.signals import get_current_user
         
         user = get_current_user()
         if user and user.is_authenticated:

@@ -42,6 +42,9 @@ class BaseModel(models.Model):
     All models should inherit from this to ensure consistency across the application.
     """
 
+    # Define PII fields as a class attribute (empty by default for abstract base model)
+    pii_fields = []
+
     class Meta:
         abstract = True
 
@@ -253,6 +256,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     class Meta:
         verbose_name = _("User")
         verbose_name_plural = _("Users")
+        ordering = ["-date_joined", "email"]  # Order by newest first, then by email
 
     email = models.EmailField(
         unique=True, help_text=_("Email address used for authentication")
