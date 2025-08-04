@@ -16,6 +16,12 @@ flake8>=7.1.0
 black>=24.0.0
 isort>=5.13.0
 autoflake>=2.3.0
+# Enhanced code quality
+pre-commit>=3.6.0
+bandit>=1.7.5
+safety>=3.0.0
+mypy>=1.8.0
+django-stubs>=4.2.0
 
 # Development utilities
 ipython>=8.0.0
@@ -25,3 +31,7 @@ django-extensions>=3.2.0
 # Documentation
 sphinx>=7.0.0
 sphinx-rtd-theme>=2.0.0
+
+# Performance and profiling
+django-silk>=5.0.4
+memory-profiler>=0.61.0

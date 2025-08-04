@@ -11,3 +11,15 @@ django-allauth>=65.10.0
 PyJWT>=2.8.0
 google-cloud-storage>=2.12.0
 pytest
+# API Documentation
+drf-spectacular>=0.27.2
+# Enhanced Monitoring
+django-prometheus>=2.3.1
+# Cache Integration
+redis>=5.0.0
+django-redis>=5.4.0
+# Enhanced Security
+django-ratelimit>=4.1.0
+# Environment Validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
